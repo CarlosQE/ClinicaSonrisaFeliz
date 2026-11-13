@@ -1,0 +1,60 @@
+@model ListadoCitasViewModel
+@{
+    ViewData["Title"] = "Citas";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Citas</h1>
+    <a class="btn btn-success" asp-action="Create">+ Agendar cita</a>
+</div>
+
+<form method="get" asp-action="Index" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+        <label class="form-label" for="desde">Desde</label>
+        <input class="form-control" type="date" id="desde" name="desde" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label" for="hasta">Hasta</label>
+        <input class="form-control" type="date" id="hasta" name="hasta" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label" for="odontologoId">Odontólogo</label>
+        <select class="form-select" id="odontologoId" name="odontologoId" asp-items="Model.Odontologos">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label" for="estado">Estado</label>
+        <select class="form-select" id="estado" name="estado" asp-items="Html.GetEnumSelectList<EstadoCita>()">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-primary" type="submit">Filtrar</button></div>
+</form>
+
+@if (Model.Citas.Count == 0)
+{
+    <div class="alert alert-info">No hay citas con esos filtros.</div>
+}
+else
+{
+    <table class="table table-hover align-middle" data-testid="tabla-citas">
+        <thead>
+            <tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Odontólogo</th><th>Motivo</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var c in Model.Citas)
+        {
+            <tr>
+                <td>@c.FechaHora.ToString("dd/MM/yyyy")</td>
+                <td>@c.FechaHora.ToString("HH:mm")</td>
+                <td>@c.Paciente?.NombreCompleto</td>
+                <td>@c.Odontologo?.NombreCompleto</td>
+                <td>@c.Motivo</td>
+                <td><partial name="_EstadoCita" model="c.Estado" /></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@c.Id">Ver</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

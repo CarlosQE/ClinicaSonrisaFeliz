@@ -1,0 +1,36 @@
+# Integración continua: en cada push / Pull Request compila y corre las pruebas.
+# Cada módulo es un "job" separado, así se ve de un vistazo qué grupo está en verde y cuál no.
+# El job "Base" (infraestructura común) debe estar SIEMPRE en verde: configúralo como obligatorio
+# en Settings > Branches > Branch protection rules > Require status checks.
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pruebas:
+    name: ${{ matrix.modulo }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        modulo: [ Base, Pacientes, Odontologos, Citas, Tratamientos, Pagos ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar
+        run: dotnet restore ClinicaDental.sln
+
+      - name: Compilar
+        run: dotnet build ClinicaDental.sln --no-restore -c Release
+
+      - name: Pruebas del módulo ${{ matrix.modulo }}
+        run: dotnet test ClinicaDental.sln --no-build -c Release --filter "Modulo=${{ matrix.modulo }}" --logger "console;verbosity=normal"

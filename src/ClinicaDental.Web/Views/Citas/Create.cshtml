@@ -1,0 +1,97 @@
+@model AgendarCitaViewModel
+@{
+    ViewData["Title"] = "Agendar cita";
+}
+
+<h1 class="h3">Agendar cita</h1>
+
+<div class="row">
+    <div class="col-lg-7">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="PacienteId" class="form-label"></label>
+                <select asp-for="PacienteId" asp-items="Model.Pacientes" class="form-select">
+                    <option value="">-- Seleccione --</option>
+                </select>
+                <span asp-validation-for="PacienteId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="OdontologoId" class="form-label"></label>
+                <select asp-for="OdontologoId" asp-items="Model.Odontologos" class="form-select">
+                    <option value="">-- Seleccione --</option>
+                </select>
+                <span asp-validation-for="OdontologoId" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-7 mb-3">
+                    <label asp-for="FechaHora" class="form-label"></label>
+                    <input asp-for="FechaHora" type="datetime-local" step="900" class="form-control" />
+                    <span asp-validation-for="FechaHora" class="text-danger"></span>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label asp-for="DuracionMinutos" class="form-label"></label>
+                    <input asp-for="DuracionMinutos" type="number" min="15" max="240" step="15" class="form-control" />
+                    <span asp-validation-for="DuracionMinutos" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Motivo" class="form-label"></label>
+                <input asp-for="Motivo" class="form-control" />
+                <span asp-validation-for="Motivo" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Agendar</button>
+            <a asp-action="Agenda" class="btn btn-outline-secondary">Volver</a>
+        </form>
+    </div>
+
+    <div class="col-lg-5 mt-4 mt-lg-0">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6">Horarios libres del odontólogo</h2>
+                <p class="small text-muted mb-2">Elija odontólogo y fecha; haga clic en una hora para usarla.</p>
+                <div id="horarios-libres" class="d-flex flex-wrap gap-1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const odo = document.getElementById('OdontologoId');
+            const fh = document.getElementById('FechaHora');
+            const dur = document.getElementById('DuracionMinutos');
+            const caja = document.getElementById('horarios-libres');
+
+            async function cargar() {
+                caja.innerHTML = '';
+                if (!odo.value || !fh.value) return;
+                const fecha = fh.value.substring(0, 10);
+                const url = `@Url.Action("HorariosDisponibles")?odontologoId=${odo.value}&fecha=${fecha}&duracion=${dur.value || 30}`;
+                const resp = await fetch(url);
+                if (!resp.ok) { caja.textContent = 'No se pudo consultar.'; return; }
+                const horas = await resp.json();
+                if (horas.length === 0) { caja.textContent = 'Sin horarios libres ese día.'; return; }
+                for (const h of horas) {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'btn btn-sm btn-outline-success';
+                    b.textContent = h.substring(11, 16);
+                    b.onclick = () => { fh.value = h; };
+                    caja.appendChild(b);
+                }
+            }
+            odo.addEventListener('change', cargar);
+            fh.addEventListener('change', cargar);
+            dur.addEventListener('change', cargar);
+            cargar();
+        })();
+    </script>
+}

@@ -1,0 +1,36 @@
+@model Cita
+@{
+    ViewData["Title"] = "Detalle de cita";
+}
+
+<h1 class="h3">Cita #@Model.Id <partial name="_EstadoCita" model="Model.Estado" /></h1>
+
+<dl class="row mt-3">
+    <dt class="col-sm-3">Paciente</dt>
+    <dd class="col-sm-9">@Model.Paciente?.NombreCompleto (CI @Model.Paciente?.CI)</dd>
+    <dt class="col-sm-3">Odontólogo</dt>
+    <dd class="col-sm-9">@Model.Odontologo?.NombreCompleto</dd>
+    <dt class="col-sm-3">Fecha y hora</dt>
+    <dd class="col-sm-9">@Model.FechaHora.ToString("dddd dd/MM/yyyy HH:mm") - @Model.FechaHoraFin.ToString("HH:mm") (@Model.DuracionMinutos min)</dd>
+    <dt class="col-sm-3">Motivo</dt>
+    <dd class="col-sm-9">@Model.Motivo</dd>
+    @if (Model.Estado == EstadoCita.Cancelada)
+    {
+        <dt class="col-sm-3">Motivo de cancelación</dt>
+        <dd class="col-sm-9">@Model.MotivoCancelacion</dd>
+    }
+    <dt class="col-sm-3">Registrada</dt>
+    <dd class="col-sm-9">@Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</dd>
+</dl>
+
+<div class="d-flex gap-2">
+    @if (Model.EstaVigente)
+    {
+        <a class="btn btn-warning" asp-action="Reprogramar" asp-route-id="@Model.Id">Reprogramar</a>
+        <a class="btn btn-outline-danger" asp-action="Cancelar" asp-route-id="@Model.Id">Cancelar cita</a>
+        <form asp-action="MarcarAtendida" asp-route-id="@Model.Id" method="post">
+            <button class="btn btn-success" type="submit">Marcar atendida</button>
+        </form>
+    }
+    <a class="btn btn-outline-secondary" asp-action="Agenda" asp-route-fecha="@Model.FechaHora.ToString("yyyy-MM-dd")">Volver a la agenda</a>
+</div>

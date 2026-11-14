@@ -1,0 +1,62 @@
+@host = http://localhost:5087
+@especialidadGeneral = 10000000-0000-0000-0000-000000000001
+@odontologo = 20000000-0000-0000-0000-000000000001
+@odontologoInactivo = 20000000-0000-0000-0000-000000000004
+
+### Listar todos los odontólogos
+GET {{host}}/api/Odontologo
+Accept: application/json
+
+### Listar solo activos
+GET {{host}}/api/Odontologo?activo=true
+Accept: application/json
+
+### Filtrar por especialidad
+GET {{host}}/api/Odontologo?idEspecialidad={{especialidadGeneral}}
+Accept: application/json
+
+### Obtener un odontólogo
+GET {{host}}/api/Odontologo/{{odontologo}}
+Accept: application/json
+
+### Registrar odontólogo
+POST {{host}}/api/Odontologo
+Content-Type: application/json
+
+{
+  "nombres": "Ana",
+  "apellidos": "Rojas Pérez",
+  "matricula": "MP-0010",
+  "telefono": "70001234",
+  "email": "ana.rojas@sonrisafeliz.bo",
+  "idEspecialidad": "{{especialidadGeneral}}"
+}
+
+### Actualizar odontólogo
+PUT {{host}}/api/Odontologo/{{odontologo}}
+Content-Type: application/json
+
+{
+  "nombres": "Ricardo",
+  "apellidos": "Salinas Pérez",
+  "matricula": "MP-0001",
+  "telefono": "70000001",
+  "email": "ricardo.salinas@sonrisafeliz.bo",
+  "idEspecialidad": "{{especialidadGeneral}}"
+}
+
+### Desactivar odontólogo
+PUT {{host}}/api/Odontologo/{{odontologo}}/estado
+Content-Type: application/json
+
+{
+  "activo": false
+}
+
+### Activar odontólogo inactivo de ejemplo
+PUT {{host}}/api/Odontologo/{{odontologoInactivo}}/estado
+Content-Type: application/json
+
+{
+  "activo": true
+}

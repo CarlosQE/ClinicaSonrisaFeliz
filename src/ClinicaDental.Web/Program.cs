@@ -11,8 +11,25 @@ builder.Services.AddDbContext<BaseDatos>(options => options.UseSqlServer(db));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
-// Inyección de dependencias de servicios (cada grupo agrega la línea de su módulo)
+
+// Inyección de dependencias de servicios.
+// Cada grupo descomenta SOLO la línea de su módulo (no toca las de los demás).
+
+// Módulo 1 - Pacientes (ApostolesEvoMorales)
+// builder.Services.AddScoped<IPaciente, PacienteServicio>();
+
+// Módulo 2 - Odontólogos (BagayerosChaco)
+// builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
+
+// Módulo 3 - Citas (AndresFundamentalistas)
 builder.Services.AddScoped<ICita, CitaServicio>();
+
+// Módulo 4 - Tratamientos (Ultimo)
+// builder.Services.AddScoped<ITratamiento, TratamientoServicio>();
+
+// Módulo 5 - Pagos (GuaposMisteriosos)
+// builder.Services.AddScoped<IPago, PagoServicio>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -66,6 +66,19 @@ namespace ClinicaDental.Web.Data
                 new Paciente { Id = Guid.Parse("30000000-0000-0000-0000-000000000004"), Nombres = "Pedro Antonio", Apellidos = "Condori Vargas", CI = "6543210", FechaNacimiento = new DateOnly(1979, 1, 9), Telefono = "74444444", Email = null, Direccion = "Zona Sud, calle 5", FechaRegistro = new DateTime(2026, 11, 2) },
                 new Paciente { Id = Guid.Parse("30000000-0000-0000-0000-000000000005"), Nombres = "Sofía", Apellidos = "Mendoza Rivero", CI = "10234567", FechaNacimiento = new DateOnly(2010, 5, 30), Telefono = "75555555", Email = "sofia.mendoza@correo.com", Direccion = "Av. Circunvalación #45", FechaRegistro = new DateTime(2026, 11, 3) }
             );
+
+            // Tratamientos y pago de ejemplo (para que Tratamientos y Pagos puedan probar sin esperar a otros módulos)
+            var trat1 = Guid.Parse("50000000-0000-0000-0000-000000000001");
+            var trat2 = Guid.Parse("50000000-0000-0000-0000-000000000002");
+
+            modelBuilder.Entity<Tratamiento>().HasData(
+                new Tratamiento { Id = trat1, IdPaciente = Guid.Parse("30000000-0000-0000-0000-000000000001"), IdOdontologo = odo1, IdCita = null, Tipo = TipoTratamiento.LimpiezaDental, Fecha = new DateOnly(2026, 11, 5), Costo = 150.00m, Observaciones = "Limpieza y profilaxis completa" },
+                new Tratamiento { Id = trat2, IdPaciente = Guid.Parse("30000000-0000-0000-0000-000000000002"), IdOdontologo = odo3, IdCita = null, Tipo = TipoTratamiento.Endodoncia, Fecha = new DateOnly(2026, 11, 6), Costo = 800.00m, Observaciones = "Tratamiento de conducto, primera sesión" }
+            );
+
+            modelBuilder.Entity<Pago>().HasData(
+                new Pago { Id = Guid.Parse("60000000-0000-0000-0000-000000000001"), IdTratamiento = trat2, Monto = 300.00m, FechaPago = new DateTime(2026, 11, 6, 12, 0, 0), Metodo = MetodoPago.Efectivo, NumeroComprobante = "CMP-000001", Observacion = "Adelanto" }
+            );
         }
     }
 }

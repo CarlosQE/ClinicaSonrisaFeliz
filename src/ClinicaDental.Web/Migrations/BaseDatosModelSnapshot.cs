@@ -693,6 +693,18 @@ namespace ClinicaDental.Web.Migrations
                         .IsUnique();
 
                     b.ToTable("pagos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("60000000-0000-0000-0000-000000000001"),
+                            FechaPago = new DateTime(2026, 11, 6, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdTratamiento = new Guid("50000000-0000-0000-0000-000000000002"),
+                            Metodo = 0,
+                            Monto = 300.00m,
+                            NumeroComprobante = "CMP-000001",
+                            Observacion = "Adelanto"
+                        });
                 });
 
             modelBuilder.Entity("ClinicaDental.Web.Models.Tratamiento", b =>
@@ -732,6 +744,28 @@ namespace ClinicaDental.Web.Migrations
                     b.HasIndex("IdPaciente");
 
                     b.ToTable("tratamientos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("50000000-0000-0000-0000-000000000001"),
+                            Costo = 150.00m,
+                            Fecha = new DateOnly(2026, 11, 5),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000001"),
+                            Observaciones = "Limpieza y profilaxis completa",
+                            Tipo = 0
+                        },
+                        new
+                        {
+                            Id = new Guid("50000000-0000-0000-0000-000000000002"),
+                            Costo = 800.00m,
+                            Fecha = new DateOnly(2026, 11, 6),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000003"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000002"),
+                            Observaciones = "Tratamiento de conducto, primera sesión",
+                            Tipo = 2
+                        });
                 });
 
             modelBuilder.Entity("ClinicaDental.Web.Models.Cita", b =>

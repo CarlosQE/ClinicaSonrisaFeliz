@@ -19,7 +19,7 @@ builder.Services.AddSwaggerGen();
 // builder.Services.AddScoped<IPaciente, PacienteServicio>();
 
 // Módulo 2 - Odontólogos (BagayerosChaco)
-// builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
+builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
 
 // Módulo 3 - Citas (AndresFundamentalistas)
 builder.Services.AddScoped<ICita, CitaServicio>();

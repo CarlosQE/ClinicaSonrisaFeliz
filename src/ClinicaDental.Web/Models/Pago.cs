@@ -1,33 +1,24 @@
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ClinicaDental.Web.Models;
-
-/// <summary>
-/// Pago (total o parcial) de un tratamiento. Dueño funcional: módulo 5 (Pagos).
-/// CONTRATO: las propiedades existentes no se renombran ni se eliminan.
-/// </summary>
-public class Pago
+namespace ClinicaDental.Web.Models
 {
-    public int Id { get; set; }
-
-    [Display(Name = "Tratamiento")]
-    public int TratamientoId { get; set; }
-    public Tratamiento? Tratamiento { get; set; }
-
-    [Range(typeof(decimal), "0.01", "1000000", ErrorMessage = "El monto debe ser mayor a 0.")]
-    public decimal Monto { get; set; }
-
-    [Display(Name = "Fecha de pago")]
-    public DateTime FechaPago { get; set; }
-
-    [Display(Name = "Método de pago")]
-    public MetodoPago Metodo { get; set; }
-
-    /// <summary>Número de comprobante, lo genera el servicio. Único. Formato: CMP-000001.</summary>
-    [StringLength(20)]
-    [Display(Name = "N° comprobante")]
-    public string NumeroComprobante { get; set; } = string.Empty;
-
-    [StringLength(250)]
-    public string? Observacion { get; set; }
+    [Index(nameof(NumeroComprobante), IsUnique = true)]
+    public class Pago
+    {
+        [Key]
+        public Guid Id { get; set; }
+        public Guid IdTratamiento { get; set; }
+        [ForeignKey(nameof(IdTratamiento))]
+        public virtual Tratamiento? Tratamiento { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Monto { get; set; }
+        public DateTime FechaPago { get; set; }
+        public MetodoPago Metodo { get; set; }
+        [MaxLength(20)]
+        public string NumeroComprobante { get; set; } = string.Empty;
+        [MaxLength(250)]
+        public string? Observacion { get; set; }
+    }
 }

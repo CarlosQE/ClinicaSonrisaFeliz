@@ -1,27 +1,25 @@
-# 🦷 Clínica Dental Sonrisa Feliz — Sistema de Gestión
+# 🦷 Clínica Dental Sonrisa Feliz — Backend
 
-Sistema web en **ASP.NET Core MVC (.NET 10) + Entity Framework Core + SQLite** para administrar
+API REST en **ASP.NET Core Web API (.NET 10) + Entity Framework Core + SQL Server** para administrar
 pacientes, odontólogos, citas, tratamientos y pagos de la Clínica Dental Sonrisa Feliz.
+Es solo backend: se prueba con **Swagger**.
 
-El proyecto lo desarrollan 5 grupos en paralelo. Este repositorio es la **base común**: ya trae el modelo
-de datos, los contratos (interfaces) de cada módulo, el menú, los datos de ejemplo y **las pruebas
-automáticas que cada grupo debe hacer pasar**. Si todas las pruebas están en verde, los módulos encajan
-entre sí y el programa final funciona.
+El proyecto lo desarrollan 5 grupos en paralelo, un módulo por grupo. Este repositorio es la **base común**:
+ya trae el modelo de datos, la base de datos con datos de ejemplo y un módulo terminado (Citas) que sirve de referencia.
 
-> 📘 **Antes de escribir código lee [CONTRIBUTING.md](CONTRIBUTING.md)** (guía paso a paso para los grupos).
+> 📘 **Antes de escribir código lee [CONTRIBUTING.md](CONTRIBUTING.md).**
 
 ---
 
 ## Módulos y responsables
 
-| # | Módulo | Grupo | Servicio a implementar | Pruebas |
-|---|--------|-------|------------------------|---------|
-| 1 | Gestión de Pacientes | **ApostolesEvoMorales** | `Services/PacienteService.cs` | `dotnet test --filter "Modulo=Pacientes"` |
-| 2 | Gestión de Odontólogos | **BagayerosChaco** | `Services/OdontologoService.cs` | `dotnet test --filter "Modulo=Odontologos"` |
-| 3 | Gestión de Citas | **AndresFundamentalistas** (líder) | `Services/CitaService.cs` ✅ terminado | `dotnet test --filter "Modulo=Citas"` |
-| 4 | Gestión de Tratamientos | **Ultimo** | `Services/TratamientoService.cs` | `dotnet test --filter "Modulo=Tratamientos"` |
-| 5 | Gestión de Pagos | **GuaposMisteriosos** | `Services/PagoService.cs` | `dotnet test --filter "Modulo=Pagos"` |
-| — | Infraestructura común | Líder | (modelo, contexto, layout) | `dotnet test --filter "Modulo=Base"` |
+| # | Módulo | Grupo | Rama de trabajo | Estado |
+|---|--------|-------|-----------------|--------|
+| 1 | Gestión de Pacientes | **ApostolesEvoMorales** | `modulo/pacientes` | ⏳ pendiente |
+| 2 | Gestión de Odontólogos | **BagayerosChaco** | `modulo/odontologos` | ⏳ pendiente |
+| 3 | Gestión de Citas | **AndresFundamentalistas** (grupo líder) | `modulo/citas` | ✅ terminado (referencia) |
+| 4 | Gestión de Tratamientos | **Ultimo** | `modulo/tratamientos` | ⏳ pendiente |
+| 5 | Gestión de Pagos | **GuaposMisteriosos** | `modulo/pagos` | ⏳ pendiente |
 
 ### Funcionalidades que pide el enunciado
 
@@ -37,101 +35,99 @@ entre sí y el programa final funciona.
 
 ## Requisitos
 
-- **.NET SDK 10** → `dotnet --version` debe mostrar `10.x` o superior. Descarga: https://dotnet.microsoft.com/download
-- Un editor: **Visual Studio 2022 (17.14+) / Visual Studio 2026**, o **VS Code** con la extensión *C# Dev Kit*, o **Rider**.
+- **.NET SDK 10** → `dotnet --version` debe mostrar `10.x`. Descarga: https://dotnet.microsoft.com/download
+- **Visual Studio 2022 (17.14+) o Visual Studio 2026**, con la carga de trabajo *ASP.NET y desarrollo web*.
+- **SQL Server LocalDB** (viene con Visual Studio, componente *SQL Server Express LocalDB*). Para comprobarlo: `sqllocaldb info` debe mostrar `MSSQLLocalDB`.
 - **Git**.
-- No hace falta instalar ningún motor de base de datos: se usa **SQLite** (un archivo `clinica.db`).
 
 ## Primeros pasos
 
-```bash
-git clone <URL-DEL-REPOSITORIO>
-```
+1. Clona el repositorio y crea la rama de tu módulo (ver tabla de arriba):
 
-```bash
-cd ProyectoProgramacionWeb2
-```
+   ```bash
+   git clone https://github.com/CarlosQE/ClinicaSonrisaFeliz.git
+   ```
 
-```bash
-dotnet build
-```
+   ```bash
+   cd ClinicaSonrisaFeliz
+   ```
 
-```bash
-dotnet run --project src/ClinicaDental.Web
-```
+   ```bash
+   git checkout -b modulo/pacientes
+   ```
 
-Abre la URL que aparece en consola (por ejemplo `http://localhost:5xxx`). La primera vez se crea
-`clinica.db` con **datos de ejemplo** (4 odontólogos, 5 pacientes, citas para los próximos días hábiles,
-un tratamiento y un pago). Los módulos que aún no están implementados muestran "🚧 Módulo en construcción".
+2. Abre `ClinicaDental.sln` en Visual Studio.
 
-Para correr **todas** las pruebas:
+3. Crea la base de datos local. En **Herramientas → Administrador de paquetes NuGet → Consola del Administrador de paquetes**,
+   con *Proyecto predeterminado* = `ClinicaDental.Web`:
 
-```bash
-dotnet test
-```
+   ```powershell
+   Update-Database
+   ```
 
-Para correr solo las de un módulo (lo que normalmente harás):
+   Esto crea la base **`ClinicaDental`** en LocalDB con todas las tablas y los **datos de ejemplo**.
+   Sin Visual Studio: `dotnet tool install --global dotnet-ef` y luego
+   `dotnet ef database update --project src/ClinicaDental.Web`.
 
-```bash
-dotnet test --filter "Modulo=Pacientes"
-```
+4. Ejecuta el proyecto (**F5**, o por consola):
 
-En Visual Studio: *Prueba → Explorador de pruebas →* agrupar por **Rasgos (Traits)** para ver cada módulo por separado.
+   ```bash
+   dotnet run --project src/ClinicaDental.Web
+   ```
 
-### Estado actual de las pruebas
+   Se abre **Swagger** (`http://localhost:5087/swagger`). Ahí pruebas todos los endpoints.
 
-| Categoría | Estado esperado hoy |
-|-----------|--------------------|
-| `Modulo=Base` | ✅ verde (siempre debe estarlo) |
-| `Modulo=Citas` | ✅ verde (módulo terminado, sirve de ejemplo) |
-| `Modulo=Pacientes` / `Odontologos` / `Tratamientos` / `Pagos` | ❌ rojo hasta que cada grupo implemente su módulo |
+> Cada vez que hagas `git merge origin/main` y entren cambios de base de datos (carpeta `Migrations/`),
+> vuelve a ejecutar `Update-Database`.
 
-Es normal que `dotnet test` (todo junto) salga en rojo mientras haya módulos pendientes. Tu objetivo es
-dejar **tu** módulo en verde sin romper `Base` ni los demás.
+### Datos de ejemplo (Guids fijos)
+
+| Qué | Ids |
+|-----|-----|
+| Especialidades (4) | `10000000-0000-0000-0000-000000000001` … `…0004` |
+| Odontólogos (4) | `20000000-0000-0000-0000-000000000001` … `…0004` (el `…0004` está **inactivo**) |
+| Pacientes (5) | `30000000-0000-0000-0000-000000000001` … `…0005` |
+| Horarios | Lunes a viernes, 08:00–12:00 y 14:00–18:00, para los 4 odontólogos |
+| Tratamientos (2) | `50000000-0000-0000-0000-000000000001` (limpieza) y `…0002` (endodoncia) |
+| Pago (1) | `60000000-0000-0000-0000-000000000001`, adelanto de 300 Bs al tratamiento `…0002` |
 
 ---
 
 ## Arquitectura
 
 ```
-Navegador ──► Controller (Controllers/XxxController.cs)
-                 │   solo coordina: valida ModelState, llama al servicio, elige la vista
-                 ▼
-              Servicio (Services/XxxService.cs)  implementa  IXxxService (Services/Contratos/)
-                 │   TODAS las reglas de negocio viven aquí
-                 ▼
-              ClinicaDbContext (Data/)  ──►  SQLite (clinica.db)
+Swagger / cliente HTTP ──► Controller (Controllers/XxxController.cs)
+                              │  valida ModelState, llama a las validaciones del servicio
+                              │  y responde 200 / 201 / 400 / 404 / 500
+                              ▼
+                           Servicio (Services/XxxServicio.cs)  implementa  IXxx (Interfaces/)
+                              │  consultas y reglas de negocio (métodos bool: ExisteX, ...)
+                              ▼
+                           BaseDatos (Data/)  ──►  SQL Server LocalDB (ClinicaDental)
 ```
 
-- **Un solo `DbContext`** compartido (`Data/ClinicaDbContext.cs`) con todas las tablas.
-- **Contratos congelados**: cada módulo tiene una interfaz en `Services/Contratos/`. Los otros módulos y
-  las pruebas dependen de esas firmas, por eso no se cambian sin acuerdo (un test lo verifica).
-- **Dos excepciones estándar** (`Common/Excepciones.cs`):
-  `ReglaNegocioException` (regla violada → se muestra en el formulario) y
-  `NoEncontradoException` (id inexistente → 404 automático por el filtro global).
-- **Inyección de dependencias ya configurada** en `Common/RegistroServicios.cs`: los grupos no tocan `Program.cs`.
-- **`TimeProvider`** en lugar de `DateTime.Now`, para que las pruebas controlen "la hora actual".
+- **Un solo `DbContext`** compartido: `Data/BaseDatos.cs`, con todas las tablas.
+- **Todos los `Id` son `Guid`.** Las claves foráneas se llaman `IdX` (`IdPaciente`, `IdOdontologo`...).
+- **`TimeProvider`** en lugar de `DateTime.Now` para obtener la hora actual.
+- **Datos de ejemplo** con `HasData` en `Data/DatosIniciales.cs`.
 
 ### Estructura del repositorio
 
 ```
 ClinicaDental.sln
 ├─ src/ClinicaDental.Web/
-│  ├─ Common/              Excepciones, registro de servicios, filtro global        (líder)
-│  ├─ Data/                ClinicaDbContext + DatosIniciales (datos de ejemplo)      (líder)
-│  ├─ Models/              Entidades compartidas + Models/Consultas (DTOs)            (contrato)
-│  ├─ Services/Contratos/  Interfaces de los 5 módulos                                (contrato)
-│  ├─ Services/            Implementación de cada módulo                              (cada grupo)
-│  ├─ Controllers/         Un controlador por módulo                                  (cada grupo)
-│  ├─ ViewModels/          Modelos de formularios de cada módulo                      (cada grupo)
-│  └─ Views/<Modulo>/      Vistas de cada módulo                                      (cada grupo)
-├─ tests/ClinicaDental.Tests/
-│  ├─ Infraestructura/     BD en memoria, reloj fijo, Escenario (datos), WebFactory   (líder)
-│  ├─ Base/                Pruebas del modelo y de los contratos                      (líder)
-│  ├─ Modulos/<Modulo>/    Pruebas unitarias del servicio de cada módulo
-│  └─ Integracion/         Levanta la app completa y prueba páginas y formularios
-├─ .github/workflows/ci.yml   Corre las pruebas de cada módulo en cada Pull Request
-├─ README.md / CONTRIBUTING.md
+│  ├─ Controllers/    Un controlador por módulo                    (cada grupo)
+│  ├─ DTOs/<Entidad>/ DTOs de entrada de cada módulo               (cada grupo)
+│  ├─ Interfaces/     I<Entidad>.cs de cada módulo                 (cada grupo)
+│  ├─ Services/       <Entidad>Servicio.cs de cada módulo          (cada grupo)
+│  ├─ Models/         Entidades y enums compartidos                (líder; cada grupo su entidad)
+│  ├─ Data/           BaseDatos + DatosIniciales (seed)            (líder)
+│  ├─ Migrations/     Migraciones de EF Core                       (líder)
+│  ├─ Program.cs      Configuración y registro de servicios        (cada grupo, solo su línea)
+│  └─ appsettings.json  Cadena de conexión (LocalDB)               (líder)
+├─ tests/             Pruebas automáticas (en reescritura; no forman parte de la solución todavía)
+├─ .github/           CI y plantilla de Pull Request
+└─ README.md / CONTRIBUTING.md
 ```
 
 ### Modelo de datos
@@ -140,8 +136,8 @@ ClinicaDental.sln
 Especialidad 1──* Odontologo 1──* HorarioOdontologo
                       │1
 Paciente 1──* Cita *──┘
-   │1          │1
-   └──* Tratamiento *──1 Odontologo      (Tratamiento.CitaId es opcional)
+   │1
+   └──* Tratamiento *──1 Odontologo      (Tratamiento.IdCita es opcional)
             │1
             └──* Pago
 ```
@@ -150,52 +146,36 @@ Paciente 1──* Cita *──┘
 |---------|--------------|---------------------------------|
 | `Paciente` | Nombres, Apellidos, **CI**, FechaNacimiento, Telefono, Email, Direccion, FechaRegistro | CI único |
 | `Especialidad` | **Nombre**, Descripcion | Nombre único |
-| `Odontologo` | Nombres, Apellidos, **Matricula**, Telefono, Email, **Activo**, EspecialidadId | Matrícula única |
-| `HorarioOdontologo` | OdontologoId, DiaSemana, HoraInicio, HoraFin | Se borran con el odontólogo |
-| `Cita` | PacienteId, OdontologoId, FechaHora, DuracionMinutos, Motivo, **Estado**, MotivoCancelacion | No se puede borrar un paciente/odontólogo con citas |
-| `Tratamiento` | PacienteId, OdontologoId, CitaId?, **Tipo**, Fecha, Costo, Observaciones | No se puede borrar si tiene pagos |
-| `Pago` | TratamientoId, Monto, FechaPago, Metodo, **NumeroComprobante** | Comprobante único |
+| `Odontologo` | Nombres, Apellidos, **Matricula**, Telefono, Email, **Activo**, IdEspecialidad | Matrícula única |
+| `HorarioOdontologo` | IdOdontologo, DiaSemana, HoraInicio, HoraFin | — |
+| `Cita` | IdPaciente, IdOdontologo, FechaHora, DuracionMinutos, Motivo, **Estado**, MotivoCancelacion | — |
+| `Tratamiento` | IdPaciente, IdOdontologo, IdCita?, **Tipo**, Fecha, Costo, Observaciones | — |
+| `Pago` | IdTratamiento, Monto, FechaPago, Metodo, **NumeroComprobante** | Comprobante único |
 
-Enums: `EstadoCita` (Programada, Reprogramada, Cancelada, Atendida), `TipoTratamiento` (LimpiezaDental,
-Ortodoncia, Endodoncia, Extraccion), `MetodoPago` (Efectivo, Tarjeta, Transferencia, QR).
+Enums (se guardan como número): `EstadoCita` (Programada=0, Reprogramada=1, Cancelada=2, Atendida=3),
+`TipoTratamiento` (LimpiezaDental=0, Ortodoncia=1, Endodoncia=2, Extraccion=3),
+`MetodoPago` (Efectivo=0, Tarjeta=1, Transferencia=2, QR=3).
 
-> **Base de datos y cambios de modelo:** se usa `EnsureCreated()` (sin migraciones) para evitar conflictos
-> entre grupos. Si alguien agrega una columna/entidad, **borra `src/ClinicaDental.Web/clinica.db`** y vuelve
-> a ejecutar: se recrea con los datos de ejemplo. Al cerrar el proyecto el líder puede generar una única migración.
+**Ninguna clave foránea borra en cascada.** Borrar un registro que otro usa (por ejemplo un paciente con citas)
+da error de base de datos: el servicio de cada módulo debe validarlo antes y devolver un `BadRequest` claro.
 
 ---
 
 ## Módulo 3 — Gestión de Citas (AndresFundamentalistas) ✅
 
-Implementado completo y usado como **implementación de referencia** para los demás grupos.
+Implementado completo y usado como **ejemplo** para los demás grupos.
+Archivos: `DTOs/Cita/`, `Interfaces/ICita.cs`, `Services/CitaServicio.cs`, `Controllers/CitaController.cs`.
 
-| Requisito | Pantalla | Servicio |
-|-----------|----------|----------|
-| Agendar citas | `/Citas/Create` (muestra horarios libres del odontólogo) | `AgendarAsync` |
-| Reprogramar citas | `/Citas/Reprogramar/{id}` | `ReprogramarAsync` |
-| Cancelar citas | `/Citas/Cancelar/{id}` (pide motivo) | `CancelarAsync` |
-| Consultar agenda diaria | `/Citas/Agenda?fecha=yyyy-MM-dd` (filtro por odontólogo) | `ObtenerAgendaDiariaAsync` |
-| Extra: listado con filtros | `/Citas` | `ListarAsync` |
-| Extra: marcar atendida | botón en `/Citas/Details/{id}` (lo usa Tratamientos) | `MarcarAtendidaAsync` |
-| Extra: horarios libres (JSON) | `/Citas/HorariosDisponibles?odontologoId=&fecha=&duracion=` | `ObtenerHorariosDisponiblesAsync` |
+| Requisito | Endpoint |
+|-----------|----------|
+| Listar citas | `GET /api/Cita` |
+| Buscar una cita | `GET /api/Cita/{id}` |
+| Consultar agenda diaria | `GET /api/Cita/agenda?fecha=yyyy-MM-dd&idOdontologo=&incluirCanceladas=` |
+| Agendar cita | `POST /api/Cita` |
+| Reprogramar cita | `PUT /api/Cita/{id}/reprogramar` |
+| Cancelar cita | `PUT /api/Cita/{id}/cancelar` |
 
-Reglas validadas al agendar/reprogramar (todas lanzan `ReglaNegocioException`):
-
-1. El paciente existe. 2. El odontólogo existe y está **activo**. 3. La fecha/hora es **futura**.
-4. Duración entre 15 y 240 min. 5. La cita cae **completa dentro de una franja** del horario del odontólogo.
-6. El odontólogo no tiene otra cita no cancelada que se **solape**. 7. El paciente tampoco. 8. Motivo obligatorio.
-Solo se reprograma/cancela/atiende una cita **Programada** o **Reprogramada**; cancelar libera el horario.
-
-Pruebas: 52 unitarias (`Modulos/Citas`) + 17 de integración (`Integracion/PaginasCitasTests.cs`).
-
----
-
-## Resumen de lo que verifica cada suite
-
-| Suite | Qué garantiza |
-|-------|---------------|
-| `Base/ContratosTests` | Nadie cambió firmas de interfaces, ni renombró/borró propiedades de entidades o valores de enums |
-| `Base/BaseDeDatosTests` | Índices únicos, claves foráneas, suma de decimales en SQLite, datos de ejemplo |
-| `Integracion/PaginasBaseTests` | El menú enlaza los 5 módulos y los 5 servicios están registrados |
-| `Modulos/<X>/<X>ServiceTests` | Las reglas de negocio del módulo (detalle en cada interfaz de `Services/Contratos/`) |
-| `Integracion/Paginas<X>Tests` | Las rutas obligatorias del módulo responden 200 con el layout común, y 404 para ids inexistentes |
+Reglas al agendar/reprogramar: el paciente existe · el odontólogo existe y está **activo** · la fecha/hora es **futura** ·
+duración entre 15 y 240 min · la cita cae **completa dentro de una franja** del horario del odontólogo ·
+el odontólogo y el paciente no tienen otra cita no cancelada que se **solape** · motivo obligatorio.
+Solo se reprograma o cancela una cita **Programada** o **Reprogramada**.

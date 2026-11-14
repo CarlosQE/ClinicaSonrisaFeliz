@@ -9,14 +9,18 @@
 
 ## Checklist (ver CONTRIBUTING.md)
 
-- [ ] `dotnet build` compila sin errores.
-- [ ] `dotnet test --filter "Modulo=Base"` está en verde.
-- [ ] `dotnet test --filter "Modulo=<MiModulo>"` está en verde (o indico abajo cuáles faltan y por qué).
-- [ ] Solo modifiqué archivos de MI módulo (tabla "¿Qué archivos puede tocar cada grupo?").
-- [ ] NO cambié firmas de las interfaces en `Services/Contratos/` ni renombré/borré propiedades de las entidades.
-- [ ] No modifiqué pruebas de otros grupos ni las de mi módulo para que "pasen".
-- [ ] Probé las pantallas a mano con `dotnet run` y los datos de ejemplo.
+- [ ] El proyecto compila sin errores ni warnings.
+- [ ] Probé todos los endpoints de mi módulo en Swagger (casos correctos y casos de error).
+- [ ] Solo modifiqué archivos de MI módulo y mi línea de `Program.cs`.
+- [ ] Las validaciones están en el servicio (métodos `bool`) y el controlador responde `BadRequest`.
+- [ ] NO subí migraciones. Si cambié una entidad, lo aviso abajo.
+- [ ] No renombré ni borré propiedades de otras entidades.
+- [ ] Hice `git merge origin/main` antes de abrir este PR.
 
-## Capturas (opcional)
+## Cambios en entidades (si los hay)
+
+<!-- Entidad y propiedades agregadas. El grupo líder genera la migración. -->
+
+## Capturas de Swagger (opcional)
 
 ## Notas para el revisor

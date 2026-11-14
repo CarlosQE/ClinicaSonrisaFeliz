@@ -1,53 +1,49 @@
-using System.Globalization;
-using ClinicaDental.Web.Common;
-using Microsoft.AspNetCore.Localization;
-
-// ============================================================================
-//  Program.cs - Dueño: grupo líder. Los grupos NO deberían necesitar modificarlo.
-//  Los servicios de cada módulo se registran en Common/RegistroServicios.cs
-// ============================================================================
+using ClinicaDental.Web.Data;
+using ClinicaDental.Web.Interfaces;
+using ClinicaDental.Web.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews(o => o.Filters.Add<FiltroExcepcionesDominio>());
-builder.Services.AgregarClinicaDental(builder.Configuration);
+// Add services to the container.
+var db = builder.Configuration.GetConnectionString("ConexionDB");
+builder.Services.AddDbContext<BaseDatos>(options => options.UseSqlServer(db));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddControllers();
+builder.Services.AddSwaggerGen();
+
+// Inyección de dependencias de servicios.
+// Cada grupo descomenta SOLO la línea de su módulo (no toca las de los demás).
+
+// Módulo 1 - Pacientes (ApostolesEvoMorales)
+// builder.Services.AddScoped<IPaciente, PacienteServicio>();
+
+// Módulo 2 - Odontólogos (BagayerosChaco)
+// builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
+
+// Módulo 3 - Citas (AndresFundamentalistas)
+builder.Services.AddScoped<ICita, CitaServicio>();
+
+// Módulo 4 - Tratamientos (Ultimo)
+// builder.Services.AddScoped<ITratamiento, TratamientoServicio>();
+
+// Módulo 5 - Pagos (GuaposMisteriosos)
+// builder.Services.AddScoped<IPago, PagoServicio>();
 
 var app = builder.Build();
 
-app.PrepararBaseDeDatos();
-
-// Cultura única para todo el sistema, igual en todas las PCs: fechas en español (dd/MM/yyyy)
-// pero números con PUNTO decimal (250.50), porque <input type="number"> siempre envía punto.
-var cultura = (CultureInfo)new CultureInfo("es-BO").Clone();
-cultura.NumberFormat.NumberDecimalSeparator = ".";
-cultura.NumberFormat.NumberGroupSeparator = ",";
-cultura.NumberFormat.CurrencyDecimalSeparator = ".";
-cultura.NumberFormat.CurrencyGroupSeparator = ",";
-cultura.NumberFormat.CurrencySymbol = "Bs";
-app.UseRequestLocalization(new RequestLocalizationOptions
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    DefaultRequestCulture = new RequestCulture(cultura),
-    SupportedCultures = new[] { cultura },
-    SupportedUICultures = new[] { cultura }
-});
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+app.MapControllers();
 
 app.Run();
 

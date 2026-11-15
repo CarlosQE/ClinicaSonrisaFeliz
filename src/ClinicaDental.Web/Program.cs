@@ -25,7 +25,7 @@ builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
 builder.Services.AddScoped<ICita, CitaServicio>();
 
 // Módulo 4 - Tratamientos (Ultimo)
-// builder.Services.AddScoped<ITratamiento, TratamientoServicio>();
+builder.Services.AddScoped<ITratamiento, TratamientoServicio>();
 
 // Módulo 5 - Pagos (GuaposMisteriosos)
 builder.Services.AddScoped<IPago, PagoServicio>();

@@ -28,7 +28,7 @@ builder.Services.AddScoped<ICita, CitaServicio>();
 // builder.Services.AddScoped<ITratamiento, TratamientoServicio>();
 
 // Módulo 5 - Pagos (GuaposMisteriosos)
-// builder.Services.AddScoped<IPago, PagoServicio>();
+builder.Services.AddScoped<IPago, PagoServicio>();
 
 var app = builder.Build();
 

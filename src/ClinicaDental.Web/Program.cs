@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 // Cada grupo descomenta SOLO la línea de su módulo (no toca las de los demás).
 
 // Módulo 1 - Pacientes (ApostolesEvoMorales)
-// builder.Services.AddScoped<IPaciente, PacienteServicio>();
+builder.Services.AddScoped<IPaciente, PacienteServicio>();
 
 // Módulo 2 - Odontólogos (BagayerosChaco)
 builder.Services.AddScoped<IOdontologo, OdontologoServicio>();

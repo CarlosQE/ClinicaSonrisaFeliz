@@ -20,6 +20,8 @@ builder.Services.AddScoped<IPaciente, PacienteServicio>();
 
 // Módulo 2 - Odontólogos (BagayerosChaco)
 builder.Services.AddScoped<IOdontologo, OdontologoServicio>();
+builder.Services.AddScoped<IEspecialidad, EspecialidadServicio>();
+builder.Services.AddScoped<IHorarioOdontologo, HorarioOdontologoServicio>();
 
 // Módulo 3 - Citas (AndresFundamentalistas)
 builder.Services.AddScoped<ICita, CitaServicio>();

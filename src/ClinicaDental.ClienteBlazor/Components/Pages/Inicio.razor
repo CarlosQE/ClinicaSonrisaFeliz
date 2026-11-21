@@ -1,0 +1,181 @@
+@page "/"
+
+<PageTitle>Inicio · Sonrisa Feliz</PageTitle>
+
+<section class="bienvenida">
+    <h1>@Saludo, @_nombre 👋</h1>
+    <p>Hoy es @Formato.FechaLarga(Hoy). @if (!Cargando) { <span>Tienes <b>@_citasHoy.Count</b> @(_citasHoy.Count == 1 ? "cita" : "citas") en la agenda.</span> }</p>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-filled" href="citas/nueva"><span class="ms">edit_calendar</span>Agendar cita</a>
+        <a class="btn btn-tonal" href="pacientes/nuevo"><span class="ms">person_add</span>Nuevo paciente</a>
+        <a class="btn btn-outlined" href="pagos/nuevo"><span class="ms">add_card</span>Registrar pago</a>
+    </div>
+    <svg class="ilustracion" width="190" height="170" viewBox="0 0 190 170" aria-hidden="true">
+        <circle cx="105" cy="90" r="78" fill="#FFFFFF" opacity=".45" />
+        <path d="M95 52c-6-4.3-11.6-6.2-17.6-6.2-12.6 0-21.6 9.8-21.6 23.5 0 8.4 2.5 15.4 5.3 23 2.8 7.3 4.5 16.8 6.2 25.5 1.4 6.7 3.9 10.1 7.8 10.1 5 0 6.7-5.3 8.1-12.6 1.7-7.8 3.6-15.4 11.8-15.4s10.1 7.6 11.8 15.4c1.4 7.3 3.1 12.6 8.1 12.6 3.9 0 6.4-3.4 7.8-10.1 1.7-8.7 3.4-18.2 6.2-25.5 2.8-7.6 5.3-14.6 5.3-23 0-13.7-9-23.5-21.6-23.5-6 0-11.6 1.9-17.6 6.2z" fill="#FFFFFF" stroke="#00696D" stroke-width="3" />
+        <path d="M80 76c4.2 5.3 9.2 8.1 15 8.1s10.8-2.8 15-8.1" fill="none" stroke="#00696D" stroke-width="4" stroke-linecap="round" />
+        <circle cx="83" cy="64" r="3.5" fill="#00696D" /><circle cx="107" cy="64" r="3.5" fill="#00696D" />
+        <path d="M150 28l2.6 6 6 2.6-6 2.6-2.6 6-2.6-6-6-2.6 6-2.6z" fill="#F5B800" />
+        <path d="M42 36l1.8 4.2 4.2 1.8-4.2 1.8-1.8 4.2-1.8-4.2-4.2-1.8 4.2-1.8z" fill="#4B607C" />
+    </svg>
+</section>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Tipo="tarjetas" Filas="3" />
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <a class="kpi" href="citas/agenda"><span class="kpi-icono tono-primario"><span class="ms">today</span></span>
+                <span><span class="kpi-valor d-block">@_citasHoy.Count</span><span class="kpi-etiqueta">Citas hoy</span></span></a>
+        </div>
+        <div class="col-6 col-xl-3">
+            <a class="kpi" href="pacientes"><span class="kpi-icono tono-terciario"><span class="ms">groups</span></span>
+                <span><span class="kpi-valor d-block">@_totalPacientes</span><span class="kpi-etiqueta">Pacientes</span></span></a>
+        </div>
+        <div class="col-6 col-xl-3">
+            <a class="kpi" href="odontologos"><span class="kpi-icono tono-exito"><span class="ms">stethoscope</span></span>
+                <span><span class="kpi-valor d-block">@_odontologosActivos</span><span class="kpi-etiqueta">Odontólogos activos</span></span></a>
+        </div>
+        <div class="col-6 col-xl-3">
+            <a class="kpi" href="pagos/deudas"><span class="kpi-icono tono-aviso"><span class="ms">account_balance_wallet</span></span>
+                <span><span class="kpi-valor d-block">@Formato.Dinero(_deudas.Sum(d => d.Saldo))</span><span class="kpi-etiqueta">Por cobrar</span></span></a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="tarjeta-borde h-100">
+                <div class="tarjeta-titulo">
+                    <h2>Agenda de hoy</h2>
+                    <a class="btn btn-text btn-sm" href="citas/agenda">Ver agenda<span class="ms">chevron_right</span></a>
+                </div>
+                @if (_citasHoy.Count == 0)
+                {
+                    <Vacio Icono="event_available" Titulo="Sin citas para hoy" Texto="La agenda está libre. Puedes agendar una nueva cita." />
+                }
+                else
+                {
+                    <ul class="lista">
+                        @foreach (var c in _citasHoy)
+                        {
+                            <li>
+                                <a class="lista-item" href="citas/@c.Id">
+                                    <span class="lista-hora"><b>@Formato.Hora(c.FechaHora)</b><span>@c.DuracionMinutos min</span></span>
+                                    <span class="lista-texto">
+                                        <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
+                                        <span class="lista-sub d-block">@c.Motivo · @c.Odontologo?.NombreCompleto</span>
+                                    </span>
+                                    <ChipEstadoCita Estado="c.Estado" />
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-5 d-flex flex-column gap-3">
+            <div class="tarjeta-borde">
+                <div class="tarjeta-titulo">
+                    <h2>Próximas citas</h2>
+                    <a class="btn btn-text btn-sm" href="citas">Ver todas<span class="ms">chevron_right</span></a>
+                </div>
+                @if (_proximas.Count == 0)
+                {
+                    <p class="text-muted mb-0">No hay citas programadas para los próximos días.</p>
+                }
+                else
+                {
+                    <ul class="lista">
+                        @foreach (var c in _proximas)
+                        {
+                            <li>
+                                <a class="lista-item" href="citas/@c.Id">
+                                    <span class="kpi-icono tono-secundario icono-40"><span class="ms">event</span></span>
+                                    <span class="lista-texto">
+                                        <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
+                                        <span class="lista-sub d-block">@Formato.FechaHora(c.FechaHora) · @c.Odontologo?.NombreCompleto</span>
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="tarjeta-borde">
+                <div class="tarjeta-titulo">
+                    <h2>Saldos por cobrar</h2>
+                    <a class="btn btn-text btn-sm" href="pagos/deudas">Ver deudas<span class="ms">chevron_right</span></a>
+                </div>
+                @if (_deudas.Count == 0)
+                {
+                    <p class="text-muted mb-0">No hay deudas pendientes. 🎉</p>
+                }
+                else
+                {
+                    <ul class="lista">
+                        @foreach (var d in _deudas.OrderByDescending(d => d.Saldo).Take(4))
+                        {
+                            <li>
+                                <a class="lista-item" href="pagos/nuevo?tratamiento=@d.IdTratamiento">
+                                    <span class="lista-texto">
+                                        <span class="lista-titulo d-block">@d.PacienteNombre</span>
+                                        <span class="lista-sub d-block">@Formato.TextoTipo(d.Tipo) · @Formato.Fecha(d.Fecha)</span>
+                                    </span>
+                                    <span class="chip chip--warn">@Formato.Dinero(d.Saldo)</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAuth { get; set; }
+
+    private string _nombre = string.Empty;
+    private int _totalPacientes, _odontologosActivos;
+    private List<CitaRespuesta> _citasHoy = new(), _proximas = new();
+    private List<DeudaRespuesta> _deudas = new();
+
+    private string Saludo => Ahora.Hour switch { < 12 => "Buenos días", < 19 => "Buenas tardes", _ => "Buenas noches" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EstadoAuth is not null)
+        {
+            var completo = (await EstadoAuth).User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? "";
+            _nombre = completo.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        }
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var pacientes = PacientesAsync();
+        var odontologos = OdontologosAsync();
+        var agenda = CargarAsync($"api/Cita/agenda?fecha={Hoy:yyyy-MM-dd}", new List<CitaRespuesta>());
+        var citas = CargarAsync("api/Cita", new List<CitaRespuesta>());
+        var deudas = CargarAsync("api/Pago/deudas", new List<DeudaRespuesta>());
+        await Task.WhenAll(pacientes, odontologos, agenda, citas, deudas);
+
+        _totalPacientes = pacientes.Result.Count;
+        _odontologosActivos = odontologos.Result.Count;
+        _citasHoy = agenda.Result;
+        var manana = Hoy.AddDays(1).ToDateTime(TimeOnly.MinValue);
+        _proximas = citas.Result.Where(c => c.FechaHora >= manana && c.EstaVigente).OrderBy(c => c.FechaHora).Take(5).ToList();
+        _deudas = deudas.Result;
+        Cargando = false;
+    }
+}

@@ -1,0 +1,26 @@
+@* Tarjeta resumen de una cita (Detalle, Reprogramar y Cancelar). *@
+<div class="tarjeta mb-4">
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <span class="kpi-icono tono-primario"><span class="ms">event</span></span>
+        <div class="flex-grow-1">
+            <div class="h4 mb-0 text-capitalize-first">@Formato.FechaLarga(Cita.FechaHora)</div>
+            <div class="text-muted">@Formato.Hora(Cita.FechaHora) – @Formato.Hora(Cita.FechaHoraFin) · @Cita.DuracionMinutos minutos</div>
+        </div>
+        <ChipEstadoCita Estado="Cita.Estado" />
+    </div>
+    <dl class="datos">
+        <div><dt>Paciente</dt><dd><a href="pacientes/@Cita.IdPaciente">@Cita.Paciente?.NombreCompleto</a></dd></div>
+        <div><dt>CI</dt><dd>@Cita.Paciente?.CI</dd></div>
+        <div><dt>Odontólogo</dt><dd><a href="odontologos/@Cita.IdOdontologo">@Cita.Odontologo?.NombreCompleto</a></dd></div>
+        <div><dt>Motivo</dt><dd>@Cita.Motivo</dd></div>
+        @if (Cita.Estado == EstadoCita.Cancelada)
+        {
+            <div><dt>Motivo de cancelación</dt><dd>@(Cita.MotivoCancelacion ?? "—")</dd></div>
+        }
+        <div><dt>Registrada el</dt><dd>@Formato.FechaHora(Cita.FechaRegistro)</dd></div>
+    </dl>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CitaRespuesta Cita { get; set; } = default!;
+}

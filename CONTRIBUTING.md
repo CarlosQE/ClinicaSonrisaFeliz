@@ -18,6 +18,7 @@ Los 5 módulos están implementados (Pacientes, Odontólogos/Especialidades/Hora
 
 3. Crea o actualiza tu base de datos local con `Update-Database` (Consola del Administrador de paquetes, proyecto `ClinicaDental.Web`) y ejecuta el proyecto.
 4. Verifica en Swagger que los endpoints respondan correctamente.
+5. Para el frontend, arranca API + cliente con el perfil **"API + Cliente web"** (`ClinicaDental.slnLaunch`), abre `http://localhost:5180` e ingresa con `admin` / `Admin.Sonrisa2026`.
 
 ## 2. Estado de módulos y ramas
 
@@ -47,8 +48,33 @@ Estructura vigente del proyecto web (`src/ClinicaDental.Web/`): `Controllers/`, 
 - Validar `ModelState` en `POST/PUT`, aplicar validaciones de negocio del servicio y responder con `BadRequest`/`NotFound` claros; envolver operaciones con `try/catch` y responder `500` ante errores inesperados.
 - Lógica de negocio y consultas en el **servicio** (no en el controlador).
 - Hora actual mediante `TimeProvider` inyectado (no `DateTime.Now`).
-- Sin repositorios genéricos, MediatR, AutoMapper ni Identity/JWT.
+- Sin repositorios genéricos, MediatR, AutoMapper ni ASP.NET Identity (la autenticación es JWT propio, ver 4.2).
 
+## 4.1 Convenciones del frontend (`ClinicaDental.ClienteBlazor`, Blazor)
+
+- **Nunca** acceder a la base de datos desde el cliente: todo se hace llamando a la API.
+- Cada página es un componente en `Components/Pages/<Modulo>/` con `@page "/ruta"` y hereda de `PaginaBase` (ya puesto en `Pages/_Imports.razor`).
+  Usa `Api` (`ClienteApi`): `Api.GetAsync<T>`, `PostAsync<T>`, `PutAsync<T>`, `PutTextoAsync`, `DeleteAsync`. El resultado trae `Exito`, `Datos`, `Mensaje`, `NoEncontrado` y `SinConexion`.
+  **No crees `HttpClient` propios**: `ClienteApi` agrega el token JWT y maneja la sesión expirada.
+- Patrón de carga: `Cargando = true` → llamar a la API → `Cargando = false`; en la vista `@if (Cargando) { <Cargando /> }` y `<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />`.
+- Patrón de formulario: `<EditForm Model=... OnValidSubmit=... FormName=...>` + `<DataAnnotationsValidator />` + `<ValidationMessage For=... />`.
+  Al guardar: `Enviando = true` → API → si falla `ErrorFormulario = r.Mensaje`; si funciona `Notificar.Exito("...")` y `Nav.NavigateTo(...)`. Botón: `<BotonEnviar Enviando="Enviando" Texto="..." />`.
+- Acciones destructivas: `if (!await Dialogo.ConfirmarAsync("¿Eliminar…?", "…")) return;`.
+- Lo que se **envía** a la API va en `ClinicaDental.Contrato/DTOs`; lo que la API **devuelve**, en `ClinicaDental.Contrato/Respuestas`.
+  Si un grupo cambia un DTO o una entidad del backend, debe actualizar también su espejo en `Contrato`.
+- Componentes reutilizables en `Components/Compartido/` (`Encabezado`, `Vacio`, `Avatar`, `ChipEstadoCita`, `HorariosLibres`…). Reutilízalos antes de crear otros.
+- Estilo: clases del tema (`btn-filled`, `btn-tonal`, `btn-outlined`, `btn-text`, `tarjeta`, `tarjeta-borde`, `chip`, `tabla`, `lista`, `form-floating`…) e íconos `<span class="ms">nombre_icono</span>` ([Material Symbols](https://fonts.google.com/icons)).
+  Los colores se cambian **solo** en las variables `:root` de `wwwroot/app.css`.
+- Textos siempre en español y con `Formato.*` para fechas, dinero y estados.
+- Páginas solo para un rol: envolver el contenido en `<AuthorizeView Roles="@Roles.Administrador">` (no usar `[Authorize]` en componentes).
+
+## 4.2 Seguridad (reglas para todos)
+
+- Todo endpoint nuevo queda protegido automáticamente (exige token). Solo se marca `[AllowAnonymous]` con acuerdo del líder.
+- Si un endpoint es solo para un rol, usar `[Authorize(Roles = Roles.Administrador)]`.
+- Nunca guardar contraseñas en texto plano, ni devolver `ContrasenaHash` en una respuesta, ni escribir tokens en logs.
+- No subir claves reales: `Jwt:Clave` del repositorio es solo de desarrollo.
+- Probar en Swagger con *Authorize* (token de `POST /api/Auth/login`).
 ## 5. Base de datos y migraciones (regla vigente)
 
 - La base se gestiona con migraciones de EF Core en `Migrations/`.
@@ -77,6 +103,7 @@ Estructura vigente del proyecto web (`src/ClinicaDental.Web/`): `Controllers/`, 
 
 - [ ] El proyecto compila sin errores.
 - [ ] Los endpoints afectados funcionan en Swagger (casos correctos y de error).
+- [ ] Si el cambio afecta al frontend: las páginas relacionadas funcionan en el cliente web (también con la API apagada, mostrando el aviso de sin conexión).
 - [ ] Solo se modificaron archivos necesarios y acordes al alcance.
 - [ ] No se incluyeron migraciones en el commit (salvo que el líder lo indique expresamente).
 - [ ] La documentación relevante se actualizó si el cambio lo requiere.

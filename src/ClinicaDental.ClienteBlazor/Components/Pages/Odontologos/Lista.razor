@@ -1,0 +1,113 @@
+@page "/odontologos"
+
+<Encabezado Titulo="Odontólogos" Subtitulo="Equipo profesional, especialidades y horarios de atención">
+    <Acciones>
+        <a class="btn btn-outlined" href="especialidades"><span class="ms">category</span>Especialidades</a>
+        <a class="btn btn-filled" href="odontologos/nuevo"><span class="ms">person_add</span>Nuevo odontólogo</a>
+    </Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+<div class="chips-filtro">
+    <button class="chip-filtro @(_estado is null ? "activo" : "")" @onclick="() => Filtrar(null, _idEspecialidad)">Todos</button>
+    <button class="chip-filtro @(_estado == true ? "activo" : "")" @onclick="() => Filtrar(true, _idEspecialidad)">Activos</button>
+    <button class="chip-filtro @(_estado == false ? "activo" : "")" @onclick="() => Filtrar(false, _idEspecialidad)">Inactivos</button>
+    <span class="mx-1 border-start"></span>
+    <button class="chip-filtro @(_idEspecialidad is null ? "activo" : "")" @onclick="() => Filtrar(_estado, null)">Todas las especialidades</button>
+    @foreach (var e in _especialidades)
+    {
+        <button class="chip-filtro @(_idEspecialidad == e.Id ? "activo" : "")" @onclick="() => Filtrar(_estado, e.Id)">@e.Nombre</button>
+    }
+</div>
+
+@if (Cargando)
+{
+    <Cargando Tipo="tarjetas" Filas="6" />
+}
+else if (!SinConexion && _odontologos.Count == 0)
+{
+    <Vacio Icono="stethoscope" Titulo="No hay odontólogos con estos filtros" Texto="Cambia los filtros o registra un nuevo profesional." />
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        @foreach (var o in _odontologos)
+        {
+            <div class="col">
+                <div class="tarjeta-borde h-100 d-flex flex-column">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <Avatar Nombres="@o.Nombres" Apellidos="@o.Apellidos" Clase="avatar-md" />
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-medium text-truncate">@o.NombreCompleto</div>
+                            <div class="text-muted small">@o.Especialidad?.Nombre</div>
+                        </div>
+                        @if (o.Activo)
+                        {
+                            <span class="chip chip--success"><span class="ms">check_circle</span>Activo</span>
+                        }
+                        else
+                        {
+                            <span class="chip chip--neutral"><span class="ms">pause_circle</span>Inactivo</span>
+                        }
+                    </div>
+                    <div class="small text-muted mb-3">
+                        <div><span class="ms ms-sm me-1">badge</span>Matrícula @o.Matricula</div>
+                        <div><span class="ms ms-sm me-1">call</span>@o.Telefono</div>
+                        @if (!string.IsNullOrWhiteSpace(o.Email))
+                        {
+                            <div class="text-truncate"><span class="ms ms-sm me-1">mail</span>@o.Email</div>
+                        }
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mt-auto pt-2 border-top">
+                        <a class="btn btn-text btn-sm" href="odontologos/@o.Id"><span class="ms">schedule</span>Horarios</a>
+                        <a class="btn btn-text btn-sm" href="odontologos/@o.Id/editar"><span class="ms">edit</span>Editar</a>
+                        <button class="btn btn-sm ms-auto @(o.Activo ? "btn-texto-peligro" : "btn-text")" @onclick="() => CambiarEstado(o)">
+                            <span class="ms">@(o.Activo ? "toggle_on" : "toggle_off")</span>@(o.Activo ? "Desactivar" : "Activar")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<OdontologoRespuesta> _odontologos = new();
+    private List<EspecialidadRespuesta> _especialidades = new();
+    private bool? _estado;
+    private Guid? _idEspecialidad;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _especialidades = await EspecialidadesAsync();
+        await Cargar();
+    }
+
+    private Task Filtrar(bool? estado, Guid? idEspecialidad)
+    {
+        _estado = estado;
+        _idEspecialidad = idEspecialidad;
+        return Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var filtros = new List<string>();
+        if (_estado.HasValue) filtros.Add($"activo={_estado.Value.ToString().ToLowerInvariant()}");
+        if (_idEspecialidad.HasValue) filtros.Add($"idEspecialidad={_idEspecialidad}");
+        _odontologos = await CargarAsync("api/Odontologo" + (filtros.Count > 0 ? "?" + string.Join("&", filtros) : ""), new List<OdontologoRespuesta>());
+        Cargando = false;
+    }
+
+    private async Task CambiarEstado(OdontologoRespuesta o)
+    {
+        if (o.Activo && !await Dialogo.ConfirmarAsync("¿Desactivar odontólogo?", $"{o.NombreCompleto} no podrá recibir citas nuevas.", "Desactivar")) return;
+        var r = await Api.PutAsync<OdontologoRespuesta>($"api/Odontologo/{o.Id}/estado", new CambiarEstadoOdontologoDto { Activo = !o.Activo });
+        if (r.Exito) Notificar.Exito(o.Activo ? "Odontólogo desactivado." : "Odontólogo activado.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+}

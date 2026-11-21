@@ -1,0 +1,97 @@
+@page "/login"
+@layout LayoutAcceso
+@inject ProveedorAutenticacion Auth
+
+<PageTitle>Iniciar sesión · Sonrisa Feliz</PageTitle>
+
+<div class="acceso-tarjeta">
+    <section class="acceso-marca">
+        <Logo Tamano="64" />
+        <h1>Sonrisa <b>Feliz</b></h1>
+        <p>Sistema de gestión de la Clínica Dental: pacientes, citas, tratamientos y pagos en un solo lugar.</p>
+        <ul>
+            <li><span class="ms">event_available</span>Agenda diaria por odontólogo</li>
+            <li><span class="ms">history</span>Historial clínico de cada paciente</li>
+            <li><span class="ms">receipt_long</span>Pagos, deudas y comprobantes</li>
+        </ul>
+    </section>
+
+    <section class="acceso-formulario">
+        <h2>Iniciar sesión</h2>
+        <p class="text-muted mb-4">Usa la cuenta que te asignó el administrador.</p>
+
+        @if (Expirada)
+        {
+            <div class="aviso aviso-info"><span class="ms">schedule</span><div>Tu sesión expiró. Vuelve a iniciar sesión.</div></div>
+        }
+        @if (Salio)
+        {
+            <div class="aviso aviso-exito"><span class="ms">logout</span><div>Cerraste sesión correctamente.</div></div>
+        }
+        <AvisoError Mensaje="@ErrorFormulario" SinConexion="SinConexion" />
+
+        <EditForm Model="_datos" OnValidSubmit="Ingresar" FormName="login">
+            <DataAnnotationsValidator />
+            <div class="form-floating mb-3">
+                <InputText id="usuario" class="form-control" @bind-Value="_datos.NombreUsuario" placeholder="Usuario" autocomplete="username" autofocus />
+                <label for="usuario">Usuario</label>
+                <ValidationMessage For="() => _datos.NombreUsuario" />
+            </div>
+            <div class="form-floating mb-2 campo-contrasena">
+                <InputText id="contrasena" type="@(_mostrar ? "text" : "password")" class="form-control" @bind-Value="_datos.Contrasena" placeholder="Contraseña" autocomplete="current-password" />
+                <label for="contrasena">Contraseña</label>
+                <button type="button" class="btn-icono ver-contrasena" @onclick="() => _mostrar = !_mostrar" aria-label="@(_mostrar ? "Ocultar contraseña" : "Mostrar contraseña")">
+                    <span class="ms">@(_mostrar ? "visibility_off" : "visibility")</span>
+                </button>
+                <ValidationMessage For="() => _datos.Contrasena" />
+            </div>
+            <p class="ayuda mb-4"><span class="ms ms-sm">shield_lock</span> Tras 5 intentos fallidos la cuenta se bloquea 15 minutos.</p>
+            <BotonEnviar Enviando="Enviando" Texto="Ingresar" TextoEnviando="Verificando…" Icono="login" Clase="btn-filled w-100" />
+        </EditForm>
+    </section>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "volver")] public string? Volver { get; set; }
+    [SupplyParameterFromQuery(Name = "expirada")] public bool Expirada { get; set; }
+    [SupplyParameterFromQuery(Name = "salio")] public bool Salio { get; set; }
+    [CascadingParameter] private Task<AuthenticationState>? EstadoAuth { get; set; }
+
+    private readonly LoginDto _datos = new();
+    private bool _mostrar;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Cargando = false;
+        if (EstadoAuth is not null && (await EstadoAuth).User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo(DestinoSeguro(), replace: true);
+        }
+    }
+
+    private async Task Ingresar()
+    {
+        LimpiarErrores();
+        Expirada = Salio = false;
+        Enviando = true;
+        var r = await Api.IniciarSesionAsync(_datos);
+        Enviando = false;
+
+        if (!r.Exito || r.Datos is null)
+        {
+            SinConexion = r.SinConexion;
+            ErrorFormulario = r.Mensaje;
+            _datos.Contrasena = string.Empty; // no se conserva la contraseña escrita
+            return;
+        }
+
+        await Auth.IniciarSesionAsync(r.Datos);
+        Nav.NavigateTo(DestinoSeguro(), replace: true);
+    }
+
+    /// <summary>Solo permite volver a rutas internas (evita redirecciones abiertas a otros sitios).</summary>
+    private string DestinoSeguro()
+        => !string.IsNullOrEmpty(Volver) && Volver.StartsWith('/') && !Volver.StartsWith("//") && !Volver.StartsWith("/\\")
+            ? Volver.TrimStart('/')
+            : "";
+}

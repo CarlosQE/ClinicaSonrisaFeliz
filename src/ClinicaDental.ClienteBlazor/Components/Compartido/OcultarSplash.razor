@@ -1,0 +1,12 @@
+@* Oculta la pantalla de carga inicial cuando se dibuja la primera vista. *@
+@inject IJSRuntime JS
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("sonrisa.ocultarSplash"); } catch (JSDisconnectedException) { }
+        }
+    }
+}

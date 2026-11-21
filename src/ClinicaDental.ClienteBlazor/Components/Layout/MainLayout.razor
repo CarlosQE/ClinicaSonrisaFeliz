@@ -1,0 +1,143 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject ClienteApi Api
+@inject ProveedorAutenticacion Auth
+@inject IConfiguration Config
+
+@* Toda página con este layout EXIGE sesión iniciada: si no hay sesión, se redirige al login. *@
+<AuthorizeView>
+    <Authorizing></Authorizing>
+    <NotAuthorized><RedirigirALogin /></NotAuthorized>
+    <Authorized>
+        <OcultarSplash />
+        <div class="barra-progreso @(Api.Cargando ? "activa" : "")" aria-hidden="true"></div>
+
+        <header class="app-barra">
+            <button class="btn-icono solo-movil" type="button" aria-label="Abrir menú" @onclick="() => _cajonAbierto = !_cajonAbierto">
+                <span class="ms">menu</span>
+            </button>
+            <a class="marca" href="">
+                <Logo Tamano="40" />
+                <span class="marca-texto">Sonrisa <b>Feliz</b><small>Clínica Dental</small></span>
+            </a>
+
+            <form class="buscador" role="search" @onsubmit="Buscar">
+                <span class="ms">search</span>
+                <input type="search" placeholder="Buscar pacientes por nombre o CI" aria-label="Buscar pacientes" @bind="_busqueda" />
+            </form>
+
+            <div class="barra-acciones">
+                <a class="btn-icono" href="citas/agenda" title="Agenda de hoy" aria-label="Agenda de hoy"><span class="ms">calendar_today</span></a>
+                <a class="btn-icono" href="@_urlSwagger" target="_blank" rel="noopener" title="Documentación de la API" aria-label="Documentación de la API"><span class="ms">api</span></a>
+                <div class="menu-usuario">
+                    <button type="button" class="avatar-usuario" title="@context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value" @onclick="() => _menuUsuario = !_menuUsuario" aria-haspopup="menu" aria-expanded="@_menuUsuario">
+                        @Formato.IniciasDe(context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value)
+                    </button>
+                    @if (_menuUsuario)
+                    {
+                        <div class="dialogo-fondo transparente" @onclick="() => _menuUsuario = false"></div>
+                        <div class="menu-usuario-panel" role="menu">
+                            <div class="text-center p-3">
+                                <span class="avatar-usuario grande mx-auto mb-2">@Formato.IniciasDe(context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value)</span>
+                                <div class="fw-medium">@context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value</div>
+                                <div class="small text-muted">@context.User.Identity?.Name · @Roles.Texto(context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "")</div>
+                            </div>
+                            <a class="menu-item" href="mi-cuenta" @onclick="() => _menuUsuario = false"><span class="ms">manage_accounts</span>Mi cuenta</a>
+                            @if (context.User.IsInRole(Roles.Administrador))
+                            {
+                                <a class="menu-item" href="usuarios" @onclick="() => _menuUsuario = false"><span class="ms">admin_panel_settings</span>Usuarios del sistema</a>
+                            }
+                            <button type="button" class="menu-item" @onclick="CerrarSesion"><span class="ms">logout</span>Cerrar sesión</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </header>
+
+        <div class="app-cuerpo">
+            <nav class="cajon @(_cajonAbierto ? "abierto" : "")" aria-label="Navegación principal">
+                <a class="fab-extendido" href="citas/nueva"><span class="ms">edit_calendar</span>Nueva cita</a>
+
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="" Match="NavLinkMatch.All"><span class="ms">home</span>Inicio</NavLink>
+
+                <div class="cajon-titulo">Citas</div>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="citas/agenda"><span class="ms">today</span>Agenda del día</NavLink>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="citas" Match="NavLinkMatch.All"><span class="ms">event_note</span>Todas las citas</NavLink>
+
+                <div class="cajon-titulo">Clínica</div>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="pacientes"><span class="ms">groups</span>Pacientes</NavLink>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="odontologos"><span class="ms">stethoscope</span>Odontólogos</NavLink>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="especialidades"><span class="ms">category</span>Especialidades</NavLink>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="tratamientos"><span class="ms">dentistry</span>Tratamientos</NavLink>
+
+                <div class="cajon-titulo">Caja</div>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="pagos" Match="NavLinkMatch.All"><span class="ms">receipt_long</span>Pagos</NavLink>
+                <NavLink class="cajon-enlace" ActiveClass="activo" href="pagos/deudas"><span class="ms">account_balance_wallet</span>Deudas pendientes</NavLink>
+
+                @if (context.User.IsInRole(Roles.Administrador))
+                {
+                    <div class="cajon-titulo">Administración</div>
+                    <NavLink class="cajon-enlace" ActiveClass="activo" href="usuarios"><span class="ms">admin_panel_settings</span>Usuarios</NavLink>
+                }
+
+                <div class="cajon-pie">© @DateTime.Now.Year Clínica Dental Sonrisa Feliz</div>
+            </nav>
+            <div class="cajon-fondo @(_cajonAbierto ? "visible" : "")" @onclick="() => _cajonAbierto = false"></div>
+
+            <main class="contenido" role="main">
+                <ErrorBoundary @ref="_limiteErrores">
+                    <ChildContent>@Body</ChildContent>
+                    <ErrorContent Context="excepcion">
+                        <Vacio Icono="sentiment_dissatisfied" Titulo="Algo salió mal" Texto="Ocurrió un error inesperado al mostrar esta página.">
+                            <a class="btn btn-filled" href="">Ir al inicio</a>
+                        </Vacio>
+                    </ErrorContent>
+                </ErrorBoundary>
+            </main>
+        </div>
+
+        <Snackbar />
+        <DialogoConfirmacion />
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _cajonAbierto;
+    private bool _menuUsuario;
+    private string? _busqueda;
+    private string _urlSwagger = string.Empty;
+    private ErrorBoundary? _limiteErrores;
+
+    protected override void OnInitialized()
+    {
+        _urlSwagger = (Config["ApiSettings:BaseUrl"] ?? "").TrimEnd('/') + "/swagger";
+        Api.CargaCambio += AlCambiarCarga;
+        Nav.LocationChanged += AlNavegar;
+    }
+
+    private void AlCambiarCarga() => _ = InvokeAsync(StateHasChanged);
+
+    private void AlNavegar(object? sender, LocationChangedEventArgs e)
+    {
+        _cajonAbierto = false;
+        _menuUsuario = false;
+        _limiteErrores?.Recover();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Buscar() => Nav.NavigateTo($"pacientes?busqueda={Uri.EscapeDataString(_busqueda ?? "")}");
+
+    private async Task CerrarSesion()
+    {
+        _menuUsuario = false;
+        await Auth.CerrarSesionAsync();
+        Nav.NavigateTo("login?salio=1");
+    }
+
+    public void Dispose()
+    {
+        Api.CargaCambio -= AlCambiarCarga;
+        Nav.LocationChanged -= AlNavegar;
+    }
+}

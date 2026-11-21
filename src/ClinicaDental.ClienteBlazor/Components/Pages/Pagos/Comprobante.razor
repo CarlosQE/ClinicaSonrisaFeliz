@@ -1,0 +1,89 @@
+@page "/pagos/{Id:guid}/comprobante"
+@inject IJSRuntime JS
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else if (_comprobante is { } c)
+{
+    <div class="no-imprimir">
+        <Encabezado Titulo="Comprobante de pago" MigaActual="Comprobante">
+            <Migas><a href="pagos">Pagos</a></Migas>
+            <Acciones>
+                <a class="btn btn-outlined" href="pagos"><span class="ms">arrow_back</span>Volver a pagos</a>
+                <button type="button" class="btn btn-filled" @onclick="Imprimir"><span class="ms">print</span>Imprimir</button>
+            </Acciones>
+        </Encabezado>
+    </div>
+
+    <article class="comprobante">
+        <header class="comprobante-cabecera">
+            <div class="d-flex align-items-center gap-3">
+                <Logo Tamano="56" />
+                <div>
+                    <div class="marca-texto fs-4">Sonrisa <b>Feliz</b></div>
+                    <div class="small text-muted">Clínica Dental · Comprobante de pago</div>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="small text-muted">N° de comprobante</div>
+                <div class="h4 mb-0">@c.NumeroComprobante</div>
+                <div class="small text-muted">@Formato.FechaHora(c.FechaPago)</div>
+            </div>
+        </header>
+
+        <dl class="datos mb-0">
+            <div><dt>Paciente</dt><dd>@c.PacienteNombre</dd></div>
+            <div><dt>CI</dt><dd>@c.PacienteCI</dd></div>
+            <div><dt>Tratamiento</dt><dd>@Formato.TextoTipo(c.Tratamiento)</dd></div>
+            <div><dt>Fecha del tratamiento</dt><dd>@Formato.Fecha(c.FechaTratamiento)</dd></div>
+            <div><dt>Método de pago</dt><dd>@Formato.TextoMetodo(c.Metodo)</dd></div>
+            <div><dt>Costo del tratamiento</dt><dd>@Formato.Dinero(c.CostoTratamiento)</dd></div>
+        </dl>
+
+        <div class="comprobante-total">
+            <span>Monto pagado</span>
+            <b>@Formato.Dinero(c.Monto)</b>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <span class="text-muted">Saldo restante</span>
+            <span class="fw-medium">@Formato.Dinero(c.SaldoRestante)</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(c.Observacion))
+        {
+            <div class="mt-2 small text-muted">Observación: @c.Observacion</div>
+        }
+
+        <footer class="comprobante-pie">
+            @(c.SaldoRestante <= 0 ? "Tratamiento pagado en su totalidad. " : "")¡Gracias por confiar tu sonrisa en nosotros! 😊
+        </footer>
+    </article>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ComprobanteRespuesta? _comprobante;
+
+    protected override Task OnParametersSetAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var r = await Api.GetAsync<ComprobanteRespuesta>($"api/Pago/{Id}/comprobante");
+        _comprobante = r.Datos;
+        if (!r.Exito)
+        {
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "El pago no existe.";
+        }
+        Cargando = false;
+    }
+
+    private async Task Imprimir() => await JS.InvokeVoidAsync("sonrisa.imprimir");
+}

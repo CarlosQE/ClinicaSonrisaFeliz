@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicaDental.Web", "src\ClinicaDental.Web\ClinicaDental.Web.csproj", "{19BDAAC1-D156-4ECE-A2C1-EE398E5C534F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicaDental.Contrato", "src\ClinicaDental.Contrato\ClinicaDental.Contrato.csproj", "{C1998BE1-6DCF-49A8-A634-1927533325A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicaDental.ClienteBlazor", "src\ClinicaDental.ClienteBlazor\ClinicaDental.ClienteBlazor.csproj", "{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,11 +33,37 @@ Global
 		{19BDAAC1-D156-4ECE-A2C1-EE398E5C534F}.Release|x64.Build.0 = Release|Any CPU
 		{19BDAAC1-D156-4ECE-A2C1-EE398E5C534F}.Release|x86.ActiveCfg = Release|Any CPU
 		{19BDAAC1-D156-4ECE-A2C1-EE398E5C534F}.Release|x86.Build.0 = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|x64.Build.0 = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Debug|x86.Build.0 = Debug|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|x64.ActiveCfg = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|x64.Build.0 = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|x86.ActiveCfg = Release|Any CPU
+		{C1998BE1-6DCF-49A8-A634-1927533325A1}.Release|x86.Build.0 = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|x64.Build.0 = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Debug|x86.Build.0 = Debug|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|x64.ActiveCfg = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|x64.Build.0 = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|x86.ActiveCfg = Release|Any CPU
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{19BDAAC1-D156-4ECE-A2C1-EE398E5C534F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{C1998BE1-6DCF-49A8-A634-1927533325A1} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{32D2DDD4-CF66-4D60-9D3C-C99FBFC479C8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

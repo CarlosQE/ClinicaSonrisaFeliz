@@ -768,6 +768,68 @@ namespace ClinicaDental.Web.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ClinicaDental.Web.Models.Usuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("BloqueadoHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ContrasenaHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IntentosFallidos")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NombreCompleto")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("NombreUsuario")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UltimoAcceso")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NombreUsuario")
+                        .IsUnique();
+
+                    b.ToTable("usuarios");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("70000000-0000-0000-0000-000000000001"),
+                            Activo = true,
+                            ContrasenaHash = "PBKDF2$100000$K4v0wtZSoSBERCBGlB7fhQ==$eTwO89QHlPU+KfGKeEJ1AfLBQOmxtKmSps1har/sJ6A=",
+                            FechaRegistro = new DateTime(2026, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IntentosFallidos = 0,
+                            NombreCompleto = "Administrador del sistema",
+                            NombreUsuario = "admin",
+                            Rol = "Administrador"
+                        });
+                });
+
             modelBuilder.Entity("ClinicaDental.Web.Models.Cita", b =>
                 {
                     b.HasOne("ClinicaDental.Web.Models.Odontologo", "Odontologo")

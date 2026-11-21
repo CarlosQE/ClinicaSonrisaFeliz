@@ -13,6 +13,7 @@ namespace ClinicaDental.Web.Data
         public DbSet<Cita> citas { get; set; }
         public DbSet<Tratamiento> tratamientos { get; set; }
         public DbSet<Pago> pagos { get; set; }
+        public DbSet<Usuario> usuarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

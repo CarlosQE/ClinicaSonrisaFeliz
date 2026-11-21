@@ -1,0 +1,17 @@
+@* Estado vacío con ícono, título, texto y acciones opcionales. *@
+<div class="vacio">
+    <div class="vacio-icono"><span class="ms">@Icono</span></div>
+    <h2>@Titulo</h2>
+    @if (!string.IsNullOrWhiteSpace(Texto))
+    {
+        <p>@Texto</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Icono { get; set; } = "inbox";
+    [Parameter] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string? Texto { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

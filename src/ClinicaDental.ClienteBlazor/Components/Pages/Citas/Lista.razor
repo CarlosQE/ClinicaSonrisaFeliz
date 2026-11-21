@@ -1,0 +1,121 @@
+@page "/citas"
+
+<Encabezado Titulo="Citas" Subtitulo="Agenda, reprograma y cancela citas de los pacientes">
+    <Acciones>
+        <a class="btn btn-outlined" href="citas/agenda"><span class="ms">today</span>Agenda del día</a>
+        <a class="btn btn-filled" href="citas/nueva"><span class="ms">edit_calendar</span>Nueva cita</a>
+    </Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+<div class="chips-filtro">
+    @foreach (var (valor, texto) in Periodos)
+    {
+        <button class="chip-filtro @(_periodo == valor ? "activo" : "")" @onclick="() => _periodo = valor">@texto</button>
+    }
+    <span class="mx-1 border-start"></span>
+    <button class="chip-filtro @(_estado is null ? "activo" : "")" @onclick="() => _estado = null">Todos los estados</button>
+    @foreach (var e in Enum.GetValues<EstadoCita>())
+    {
+        <button class="chip-filtro @(_estado == e ? "activo" : "")" @onclick="() => _estado = e">
+            @Formato.Texto(e) <span class="text-muted">@EnPeriodo.Count(c => c.Estado == e)</span>
+        </button>
+    }
+</div>
+
+@if (Cargando)
+{
+    <Cargando Filas="6" />
+}
+else if (!SinConexion)
+{
+    <div class="buscador buscador-local mb-3">
+        <span class="ms">filter_list</span>
+        <input type="search" placeholder="Filtrar por paciente, odontólogo o motivo" @bind="_busqueda" @bind:event="oninput" aria-label="Filtrar citas" />
+    </div>
+
+    @if (Visibles.Count == 0)
+    {
+        <Vacio Icono="event_note" Titulo="No hay citas con estos filtros" Texto="Prueba con otro periodo, estado o búsqueda." />
+    }
+    else
+    {
+        <div class="tabla-contenedor">
+            <table class="tabla">
+                <thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Odontólogo</th><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var c in Visibles)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@Formato.Fecha(c.FechaHora)</td>
+                            <td class="text-nowrap">@Formato.Hora(c.FechaHora) – @Formato.Hora(c.FechaHoraFin)</td>
+                            <td>
+                                @if (c.Paciente is not null)
+                                {
+                                    <span class="celda-persona"><Avatar Nombres="@c.Paciente.Nombres" Apellidos="@c.Paciente.Apellidos" />@c.Paciente.NombreCompleto</span>
+                                }
+                            </td>
+                            <td>@c.Odontologo?.NombreCompleto</td>
+                            <td>@c.Motivo</td>
+                            <td><ChipEstadoCita Estado="c.Estado" /></td>
+                            <td class="acciones-fila">
+                                <a class="btn-icono" href="citas/@c.Id" title="Ver detalle"><span class="ms">visibility</span></a>
+                                @if (c.EstaVigente)
+                                {
+                                    <a class="btn-icono" href="citas/@c.Id/reprogramar" title="Reprogramar"><span class="ms">update</span></a>
+                                    <a class="btn-icono peligro" href="citas/@c.Id/cancelar" title="Cancelar"><span class="ms">event_busy</span></a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private static readonly (string, string)[] Periodos = [("proximas", "Próximas"), ("pasadas", "Pasadas"), ("todas", "Todas")];
+
+    private List<CitaRespuesta> _todas = new();
+    private string _periodo = "proximas";
+    private EstadoCita? _estado;
+    private string? _busqueda;
+
+    private List<CitaRespuesta> EnPeriodo
+    {
+        get
+        {
+            var inicioHoy = Hoy.ToDateTime(TimeOnly.MinValue);
+            return _periodo switch
+            {
+                "pasadas" => _todas.Where(c => c.FechaHora < inicioHoy).OrderByDescending(c => c.FechaHora).ToList(),
+                "todas" => _todas.OrderByDescending(c => c.FechaHora).ToList(),
+                _ => _todas.Where(c => c.FechaHora >= inicioHoy).OrderBy(c => c.FechaHora).ToList()
+            };
+        }
+    }
+
+    private List<CitaRespuesta> Visibles
+    {
+        get
+        {
+            var q = Formato.TextoBusqueda(_busqueda);
+            return EnPeriodo
+                .Where(c => _estado is null || c.Estado == _estado)
+                .Where(c => q.Length == 0 || Formato.TextoBusqueda(c.Paciente?.NombreCompleto, c.Paciente?.CI, c.Odontologo?.NombreCompleto, c.Motivo).Contains(q))
+                .ToList();
+        }
+    }
+
+    protected override Task OnInitializedAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _todas = await CargarAsync("api/Cita", new List<CitaRespuesta>());
+        Cargando = false;
+    }
+}

@@ -1,0 +1,14 @@
+@* Lista en vivo de los requisitos de una contraseña segura. *@
+<ul class="requisitos-contrasena">
+    <li class="@Clase(Contrasena.Length >= 8)"><span class="ms ms-sm">@Icono(Contrasena.Length >= 8)</span>8 caracteres o más</li>
+    <li class="@Clase(Contrasena.Any(char.IsUpper))"><span class="ms ms-sm">@Icono(Contrasena.Any(char.IsUpper))</span>Una mayúscula</li>
+    <li class="@Clase(Contrasena.Any(char.IsLower))"><span class="ms ms-sm">@Icono(Contrasena.Any(char.IsLower))</span>Una minúscula</li>
+    <li class="@Clase(Contrasena.Any(char.IsDigit))"><span class="ms ms-sm">@Icono(Contrasena.Any(char.IsDigit))</span>Un número</li>
+    <li class="@Clase(Contrasena.Any(c => !char.IsLetterOrDigit(c)))"><span class="ms ms-sm">@Icono(Contrasena.Any(c => !char.IsLetterOrDigit(c)))</span>Un símbolo (. * ! # …)</li>
+</ul>
+
+@code {
+    [Parameter] public string Contrasena { get; set; } = string.Empty;
+    private static string Clase(bool ok) => ok ? "cumple" : "";
+    private static string Icono(bool ok) => ok ? "check_circle" : "radio_button_unchecked";
+}

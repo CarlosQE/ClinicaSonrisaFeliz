@@ -1,0 +1,130 @@
+@page "/especialidades"
+
+<Encabezado Titulo="Especialidades" Subtitulo="Áreas de atención que ofrece la clínica">
+    <Migas><a href="odontologos">Odontólogos</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        @if (Cargando)
+        {
+            <Cargando Filas="4" />
+        }
+        else if (_especialidades.Count == 0 && !SinConexion)
+        {
+            <Vacio Icono="category" Titulo="Sin especialidades" Texto="Crea la primera especialidad con el formulario." />
+        }
+        else
+        {
+            <div class="tabla-contenedor">
+                <ul class="lista">
+                    @foreach (var e in _especialidades)
+                    {
+                        var cantidad = _porEspecialidad.GetValueOrDefault(e.Id);
+                        <li class="lista-item @(_editando == e.Id ? "tono-secundario" : "")">
+                            <span class="kpi-icono tono-primario icono-40"><span class="ms">category</span></span>
+                            <span class="lista-texto">
+                                <span class="lista-titulo d-block">@e.Nombre</span>
+                                <span class="lista-sub d-block">@(e.Descripcion ?? "Sin descripción")</span>
+                            </span>
+                            <span class="chip chip--tertiary">@cantidad @(cantidad == 1 ? "odontólogo" : "odontólogos")</span>
+                            <button class="btn-icono" title="Editar" @onclick="() => Editar(e)"><span class="ms">edit</span></button>
+                            <button class="btn-icono peligro" title="Eliminar" @onclick="() => Eliminar(e)"><span class="ms">delete</span></button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <div class="tarjeta">
+            <h2><span class="ms me-1">@(_editando.HasValue ? "edit" : "add_circle")</span>@(_editando.HasValue ? "Editar especialidad" : "Nueva especialidad")</h2>
+            <AvisoError Mensaje="@ErrorFormulario" />
+            <EditForm Model="_datos" OnValidSubmit="Guardar" FormName="especialidad">
+                <DataAnnotationsValidator />
+                <div class="form-floating mb-3">
+                    <InputText id="nombre" class="form-control" @bind-Value="_datos.Nombre" placeholder="Nombre" />
+                    <label for="nombre">Nombre *</label>
+                    <ValidationMessage For="() => _datos.Nombre" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputTextArea id="descripcion" class="form-control alto-110" @bind-Value="_datos.Descripcion" placeholder="Descripción" />
+                    <label for="descripcion">Descripción</label>
+                    <ValidationMessage For="() => _datos.Descripcion" />
+                </div>
+                <div class="d-flex gap-2 justify-content-end">
+                    @if (_editando.HasValue)
+                    {
+                        <button type="button" class="btn btn-text" @onclick="Nueva">Cancelar</button>
+                    }
+                    <BotonEnviar Enviando="Enviando" Texto="@(_editando.HasValue ? "Guardar cambios" : "Crear especialidad")" />
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EspecialidadRespuesta> _especialidades = new();
+    private Dictionary<Guid, int> _porEspecialidad = new();
+    private EspecialidadDto _datos = new();
+    private Guid? _editando;
+
+    protected override Task OnInitializedAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var e = EspecialidadesAsync();
+        var o = OdontologosAsync(soloActivos: false);
+        await Task.WhenAll(e, o);
+        _especialidades = e.Result;
+        _porEspecialidad = o.Result.GroupBy(x => x.IdEspecialidad).ToDictionary(g => g.Key, g => g.Count());
+        Cargando = false;
+    }
+
+    private void Editar(EspecialidadRespuesta e)
+    {
+        _editando = e.Id;
+        _datos = new EspecialidadDto { Nombre = e.Nombre, Descripcion = e.Descripcion };
+        ErrorFormulario = null;
+    }
+
+    private void Nueva()
+    {
+        _editando = null;
+        _datos = new EspecialidadDto();
+        ErrorFormulario = null;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = _editando is Guid id
+            ? await Api.PutAsync<EspecialidadRespuesta>($"api/Especialidad/{id}", _datos)
+            : await Api.PostAsync<EspecialidadRespuesta>("api/Especialidad", _datos);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito(_editando.HasValue ? "Especialidad actualizada." : $"Especialidad «{_datos.Nombre}» creada.");
+        Nueva();
+        await Cargar();
+    }
+
+    private async Task Eliminar(EspecialidadRespuesta e)
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar especialidad?", $"Se eliminará «{e.Nombre}». Solo es posible si no tiene odontólogos asignados.")) return;
+        var r = await Api.DeleteAsync($"api/Especialidad/{e.Id}");
+        if (r.Exito) Notificar.Exito("Especialidad eliminada.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+}

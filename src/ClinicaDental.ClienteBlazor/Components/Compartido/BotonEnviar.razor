@@ -1,0 +1,16 @@
+@* Botón de envío que se deshabilita y muestra un spinner mientras se guarda. *@
+<button type="submit" class="btn @Clase @(Enviando ? "cargando" : "")" disabled="@Enviando">
+    @if (!Enviando && !string.IsNullOrWhiteSpace(Icono))
+    {
+        <span class="ms">@Icono</span>
+    }
+    @(Enviando ? TextoEnviando : Texto)
+</button>
+
+@code {
+    [Parameter] public bool Enviando { get; set; }
+    [Parameter] public string Texto { get; set; } = "Guardar";
+    [Parameter] public string TextoEnviando { get; set; } = "Guardando…";
+    [Parameter] public string? Icono { get; set; } = "save";
+    [Parameter] public string Clase { get; set; } = "btn-filled";
+}

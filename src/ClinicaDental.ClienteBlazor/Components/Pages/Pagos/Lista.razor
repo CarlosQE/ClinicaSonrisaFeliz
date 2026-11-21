@@ -1,0 +1,91 @@
+@page "/pagos"
+
+<Encabezado Titulo="Pagos" Subtitulo="Cobros registrados y comprobantes emitidos">
+    <Acciones>
+        <a class="btn btn-outlined" href="pagos/deudas"><span class="ms">account_balance_wallet</span>Deudas pendientes</a>
+        <a class="btn btn-filled" href="pagos/nuevo"><span class="ms">add_card</span>Registrar pago</a>
+    </Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="5" />
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-exito"><span class="ms">payments</span></span><span><span class="kpi-valor d-block">@Formato.Dinero(_pagos.Sum(p => p.Monto))</span><span class="kpi-etiqueta">Total cobrado</span></span></div></div>
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-primario"><span class="ms">calendar_month</span></span><span><span class="kpi-valor d-block">@Formato.Dinero(_pagos.Where(p => p.FechaPago.Year == Ahora.Year && p.FechaPago.Month == Ahora.Month).Sum(p => p.Monto))</span><span class="kpi-etiqueta">Este mes</span></span></div></div>
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-terciario"><span class="ms">receipt_long</span></span><span><span class="kpi-valor d-block">@_pagos.Count</span><span class="kpi-etiqueta">Comprobantes</span></span></div></div>
+    </div>
+
+    <div class="mb-3 filtros-ancho-sm">
+        <select class="form-select" @onchange="CambiarPaciente" aria-label="Paciente">
+            <option value="">Todos los pacientes</option>
+            @foreach (var p in _pacientes)
+            {
+                <option value="@p.Id" selected="@(p.Id == _idPaciente)">@p.Apellidos, @p.Nombres</option>
+            }
+        </select>
+    </div>
+
+    @if (!SinConexion && _pagos.Count == 0)
+    {
+        <Vacio Icono="receipt_long" Titulo="No hay pagos registrados" Texto="Registra el primer cobro de un tratamiento." />
+    }
+    else if (_pagos.Count > 0)
+    {
+        <div class="tabla-contenedor">
+            <table class="tabla">
+                <thead><tr><th>Comprobante</th><th>Fecha</th><th>Paciente</th><th>Tratamiento</th><th>Método</th><th class="num">Monto</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in _pagos)
+                    {
+                        <tr>
+                            <td class="fw-medium">@p.NumeroComprobante</td>
+                            <td class="text-nowrap">@Formato.FechaHora(p.FechaPago)</td>
+                            <td>@p.Tratamiento?.Paciente?.NombreCompleto</td>
+                            <td>
+                                @if (p.Tratamiento is not null)
+                                {
+                                    <a href="tratamientos/@p.IdTratamiento">@Formato.Texto(p.Tratamiento.Tipo)</a>
+                                }
+                            </td>
+                            <td><span class="chip chip--neutral"><span class="ms">@Formato.Icono(p.Metodo)</span>@Formato.Texto(p.Metodo)</span></td>
+                            <td class="num fw-medium">@Formato.Dinero(p.Monto)</td>
+                            <td class="acciones-fila"><a class="btn btn-text btn-sm" href="pagos/@p.Id/comprobante"><span class="ms">print</span>Comprobante</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private List<PagoRespuesta> _pagos = new();
+    private List<PacienteRespuesta> _pacientes = new();
+    private Guid? _idPaciente;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pacientes = await PacientesAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _pagos = await CargarAsync("api/Pago" + (_idPaciente.HasValue ? $"?idPaciente={_idPaciente}" : ""), new List<PagoRespuesta>());
+        Cargando = false;
+    }
+
+    private Task CambiarPaciente(ChangeEventArgs e)
+    {
+        _idPaciente = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        return Cargar();
+    }
+}

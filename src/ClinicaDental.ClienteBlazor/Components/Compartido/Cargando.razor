@@ -1,0 +1,33 @@
+@* Página de carga: esqueleto animado mientras llegan los datos de la API. *@
+<div class="esqueleto" role="status" aria-live="polite" aria-label="Cargando">
+    @if (Tipo == "tarjetas")
+    {
+        <div class="row g-3">
+            @for (var i = 0; i < Filas; i++)
+            {
+                <div class="col-md-6 col-xl-4"><div class="esqueleto-bloque" style="height:180px"></div></div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="esqueleto-bloque mb-3" style="height:44px;width:40%"></div>
+        @for (var i = 0; i < Filas; i++)
+        {
+            <div class="esqueleto-fila">
+                <span class="esqueleto-circulo"></span>
+                <span class="flex-grow-1">
+                    <span class="esqueleto-linea" style="width:@(60 - i % 3 * 12)%"></span>
+                    <span class="esqueleto-linea corta"></span>
+                </span>
+            </div>
+        }
+    }
+    <span class="visually-hidden">Cargando…</span>
+</div>
+
+@code {
+    [Parameter] public int Filas { get; set; } = 5;
+    /// <summary>"lista" (por defecto) o "tarjetas".</summary>
+    [Parameter] public string Tipo { get; set; } = "lista";
+}

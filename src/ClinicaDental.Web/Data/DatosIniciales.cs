@@ -20,6 +20,9 @@ namespace ClinicaDental.Web.Data
 
             // Módulo 5 - Pagos (GuaposMisteriosos)
             PagoFactories.Sembrar(modelBuilder);
+
+            // Seguridad - usuario administrador inicial (grupo líder)
+            UsuarioFactories.Sembrar(modelBuilder);
         }
     }
 }

@@ -1,0 +1,46 @@
+@implements IDisposable
+@inject Notificaciones Notificaciones
+
+<div class="snackbar @(_visible ? "visible" : "") @(_error ? "error" : "")" role="status" aria-live="polite">
+    <span class="ms">@(_error ? "error" : "check_circle")</span>
+    <span class="snackbar-texto">@_mensaje</span>
+    <button type="button" class="btn btn-text btn-sm" @onclick="Cerrar">Cerrar</button>
+</div>
+
+@code {
+    private string _mensaje = string.Empty;
+    private bool _visible;
+    private bool _error;
+    private CancellationTokenSource? _temporizador;
+
+    protected override void OnInitialized() => Notificaciones.AlMostrar += Mostrar;
+
+    private void Mostrar(string mensaje, bool error)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            _mensaje = mensaje;
+            _error = error;
+            _visible = true;
+            StateHasChanged();
+
+            _temporizador?.Cancel();
+            _temporizador = new CancellationTokenSource();
+            try
+            {
+                await Task.Delay(error ? 8000 : 5000, _temporizador.Token);
+                _visible = false;
+                StateHasChanged();
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    private void Cerrar() => _visible = false;
+
+    public void Dispose()
+    {
+        Notificaciones.AlMostrar -= Mostrar;
+        _temporizador?.Cancel();
+    }
+}

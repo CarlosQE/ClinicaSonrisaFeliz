@@ -1,0 +1,170 @@
+@page "/odontologos/{Id:guid}"
+
+<PageTitle>Horarios · Sonrisa Feliz</PageTitle>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Tipo="tarjetas" Filas="6" />
+}
+else if (_odontologo is { } o)
+{
+    <div class="migas"><a href="odontologos">Odontólogos</a><span class="ms">chevron_right</span>Horarios</div>
+
+    <div class="tarjeta mb-4 d-flex flex-wrap align-items-center gap-4">
+        <Avatar Nombres="@o.Nombres" Apellidos="@o.Apellidos" Clase="avatar-lg" />
+        <div class="flex-grow-1">
+            <h1 class="h3 mb-1">@o.NombreCompleto</h1>
+            <div class="text-muted">@o.Especialidad?.Nombre · Matrícula @o.Matricula · @o.Telefono</div>
+            <div class="mt-2 d-flex gap-2 flex-wrap">
+                @if (o.Activo)
+                {
+                    <span class="chip chip--success"><span class="ms">check_circle</span>Activo</span>
+                }
+                else
+                {
+                    <span class="chip chip--neutral"><span class="ms">pause_circle</span>Inactivo · no recibe citas</span>
+                }
+                <span class="chip chip--tertiary"><span class="ms">schedule</span>@HorasSemanales.ToString("0.#") h semanales</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outlined" href="odontologos/@o.Id/editar"><span class="ms">edit</span>Editar datos</a>
+            <a class="btn btn-tonal" href="citas/agenda?odontologo=@o.Id"><span class="ms">today</span>Ver agenda</a>
+            <button type="button" class="btn @(o.Activo ? "btn-texto-peligro" : "btn-filled")" @onclick="CambiarEstado">
+                <span class="ms">@(o.Activo ? "toggle_on" : "toggle_off")</span>@(o.Activo ? "Desactivar" : "Activar")
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <h2 class="h5 mb-3">Horario semanal</h2>
+            <div class="semana">
+                @foreach (var dia in Semana)
+                {
+                    var franjas = _horarios.Where(h => h.DiaSemana == dia).OrderBy(h => h.HoraInicio).ToList();
+                    <div class="semana-dia @(franjas.Count == 0 ? "opacity-75" : "")">
+                        <h3>@Formato.Dia(dia)</h3>
+                        @if (franjas.Count == 0)
+                        {
+                            <span class="small text-muted">Sin atención</span>
+                        }
+                        @foreach (var f in franjas)
+                        {
+                            <div class="franja">
+                                <span>@Formato.Hora(f.HoraInicio) – @Formato.Hora(f.HoraFin)</span>
+                                <button type="button" class="btn-icono" title="Eliminar franja" @onclick="() => EliminarFranja(f)"><span class="ms">close</span></button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="tarjeta">
+                <h2><span class="ms me-1">more_time</span>Agregar franja</h2>
+                <AvisoError Mensaje="@ErrorFormulario" />
+                <EditForm Model="_nueva" OnValidSubmit="Agregar" FormName="franja">
+                    <DataAnnotationsValidator />
+                    <div class="form-floating mb-3">
+                        <InputSelect id="dia" class="form-select" @bind-Value="_nueva.DiaSemana">
+                            @foreach (var dia in Semana)
+                            {
+                                <option value="@dia">@Formato.Dia(dia)</option>
+                            }
+                        </InputSelect>
+                        <label for="dia">Día</label>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6 form-floating">
+                            <InputDate Type="InputDateType.Time" id="desde" class="form-control" @bind-Value="_nueva.HoraInicio" step="900" />
+                            <label for="desde">Desde</label>
+                            <ValidationMessage For="() => _nueva.HoraInicio" />
+                        </div>
+                        <div class="col-6 form-floating">
+                            <InputDate Type="InputDateType.Time" id="hasta" class="form-control" @bind-Value="_nueva.HoraFin" step="900" />
+                            <label for="hasta">Hasta</label>
+                            <ValidationMessage For="() => _nueva.HoraFin" />
+                        </div>
+                    </div>
+                    <p class="ayuda">Las franjas de un mismo día no pueden solaparse.</p>
+                    <BotonEnviar Enviando="Enviando" Texto="Agregar horario" Icono="add" Clase="btn-filled w-100 mt-3" />
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private static readonly DayOfWeek[] Semana =
+        [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday];
+
+    private OdontologoRespuesta? _odontologo;
+    private List<HorarioRespuesta> _horarios = new();
+    private HorarioOdontologoDto _nueva = NuevaFranja();
+
+    private decimal HorasSemanales => (decimal)_horarios.Sum(h => (h.HoraFin - h.HoraInicio).TotalHours);
+
+    private static HorarioOdontologoDto NuevaFranja() => new() { HoraInicio = new TimeOnly(8, 0), HoraFin = new TimeOnly(12, 0) };
+
+    protected override Task OnParametersSetAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = _odontologo is null;
+        var r = await Api.GetAsync<OdontologoRespuesta>($"api/Odontologo/{Id}");
+        if (r.Exito)
+        {
+            _odontologo = r.Datos;
+            _horarios = await CargarAsync($"api/HorarioOdontologo/odontologo/{Id}", new List<HorarioRespuesta>());
+        }
+        else
+        {
+            _odontologo = null;
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "El odontólogo no existe.";
+        }
+        Cargando = false;
+    }
+
+    private async Task Agregar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PostAsync<HorarioRespuesta>($"api/HorarioOdontologo/odontologo/{Id}", _nueva);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito($"Horario agregado: {Formato.Dia(_nueva.DiaSemana)} de {Formato.Hora(_nueva.HoraInicio!.Value)} a {Formato.Hora(_nueva.HoraFin!.Value)}.");
+        _nueva = NuevaFranja();
+        await Cargar();
+    }
+
+    private async Task EliminarFranja(HorarioRespuesta f)
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar franja?", $"Se quitará el horario del {Formato.Dia(f.DiaSemana)} de {Formato.Hora(f.HoraInicio)} a {Formato.Hora(f.HoraFin)}.")) return;
+        var r = await Api.DeleteAsync($"api/HorarioOdontologo/{f.Id}");
+        if (r.Exito) Notificar.Exito("Franja horaria eliminada.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+
+    private async Task CambiarEstado()
+    {
+        var o = _odontologo!;
+        if (o.Activo && !await Dialogo.ConfirmarAsync("¿Desactivar odontólogo?", $"{o.NombreCompleto} no podrá recibir citas nuevas.", "Desactivar")) return;
+        var r = await Api.PutAsync<OdontologoRespuesta>($"api/Odontologo/{o.Id}/estado", new CambiarEstadoOdontologoDto { Activo = !o.Activo });
+        if (r.Exito) Notificar.Exito(o.Activo ? "Odontólogo desactivado." : "Odontólogo activado.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+}

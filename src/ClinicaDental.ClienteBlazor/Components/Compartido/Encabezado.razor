@@ -1,0 +1,27 @@
+@* Encabezado de página: migas de pan, título, subtítulo y botones de acción. *@
+<PageTitle>@Titulo · Sonrisa Feliz</PageTitle>
+<div class="pagina-encabezado">
+    <div>
+        @if (Migas is not null)
+        {
+            <div class="migas">@Migas<span class="ms">chevron_right</span>@(MigaActual ?? Titulo)</div>
+        }
+        <h1>@Titulo</h1>
+        @if (!string.IsNullOrWhiteSpace(Subtitulo))
+        {
+            <p class="subtitulo">@Subtitulo</p>
+        }
+    </div>
+    @if (Acciones is not null)
+    {
+        <div class="acciones">@Acciones</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string? Subtitulo { get; set; }
+    [Parameter] public RenderFragment? Migas { get; set; }
+    [Parameter] public string? MigaActual { get; set; }
+    [Parameter] public RenderFragment? Acciones { get; set; }
+}

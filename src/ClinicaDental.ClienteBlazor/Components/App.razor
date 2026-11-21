@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F4FBFA" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["ClinicaDental.ClienteBlazor.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/svg+xml" href="img/logo.svg" />
+    <HeadOutlet @rendermode="ModoInteractivo" />
+</head>
+
+<body>
+    @* Pantalla de carga: se ve mientras Blazor se conecta; la oculta el layout al terminar de cargar. *@
+    <div id="splash" role="status" aria-label="Cargando Sonrisa Feliz">
+        <img src="img/logo.svg" width="88" height="88" alt="" class="logo" />
+        <div class="splash-nombre">Sonrisa <b>Feliz</b></div>
+        <div class="splash-barra"></div>
+        <div class="splash-texto">Preparando tu consultorio…</div>
+    </div>
+
+    <Routes @rendermode="ModoInteractivo" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["js/sonrisa.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    // Interactivo en el servidor y SIN prerenderizado: la sesión (guardada cifrada en el navegador)
+    // se lee una vez conectados, y ninguna página se muestra antes de validar el inicio de sesión.
+    private static readonly IComponentRenderMode ModoInteractivo = new InteractiveServerRenderMode(prerender: false);
+}

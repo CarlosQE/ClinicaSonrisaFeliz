@@ -1,0 +1,118 @@
+@page "/pacientes/nuevo"
+@page "/pacientes/{Id:guid}/editar"
+
+<Encabezado Titulo="@(EsEdicion ? "Editar paciente" : "Nuevo paciente")" Subtitulo="Los campos con * son obligatorios.">
+    <Migas><a href="pacientes">Pacientes</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" />
+
+@if (Cargando)
+{
+    <Cargando Filas="3" />
+}
+else if (!NoEncontrado)
+{
+    <EditForm Model="_paciente" OnValidSubmit="Guardar" class="formulario" FormName="paciente">
+        <DataAnnotationsValidator />
+        <AvisoError Mensaje="@ErrorFormulario" />
+
+        <div class="formulario-seccion"><span class="ms">badge</span>Datos personales</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputText id="nombres" class="form-control" @bind-Value="_paciente.Nombres" placeholder="Nombres" autocomplete="given-name" />
+                <label for="nombres">Nombres *</label>
+                <ValidationMessage For="() => _paciente.Nombres" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="apellidos" class="form-control" @bind-Value="_paciente.Apellidos" placeholder="Apellidos" autocomplete="family-name" />
+                <label for="apellidos">Apellidos *</label>
+                <ValidationMessage For="() => _paciente.Apellidos" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="ci" class="form-control" @bind-Value="_paciente.CI" placeholder="CI" />
+                <label for="ci">Carnet de identidad *</label>
+                <ValidationMessage For="() => _paciente.CI" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputDate id="nacimiento" class="form-control" @bind-Value="_paciente.FechaNacimiento" max="@Hoy.ToString("yyyy-MM-dd")" />
+                <label for="nacimiento">Fecha de nacimiento *</label>
+                <ValidationMessage For="() => _paciente.FechaNacimiento" />
+            </div>
+        </div>
+
+        <div class="formulario-seccion mt-4"><span class="ms">contact_phone</span>Contacto</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_paciente.Telefono" placeholder="Teléfono" autocomplete="tel" />
+                <label for="telefono">Teléfono *</label>
+                <ValidationMessage For="() => _paciente.Telefono" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="email" type="email" class="form-control" @bind-Value="_paciente.Email" placeholder="Correo" autocomplete="email" />
+                <label for="email">Correo electrónico</label>
+                <ValidationMessage For="() => _paciente.Email" />
+            </div>
+            <div class="col-12 form-floating">
+                <InputText id="direccion" class="form-control" @bind-Value="_paciente.Direccion" placeholder="Dirección" autocomplete="street-address" />
+                <label for="direccion">Dirección</label>
+                <ValidationMessage For="() => _paciente.Direccion" />
+            </div>
+        </div>
+
+        <div class="formulario-acciones">
+            <a class="btn btn-text" href="@(EsEdicion ? $"pacientes/{Id}" : "pacientes")">Cancelar</a>
+            <BotonEnviar Enviando="Enviando" Texto="@(EsEdicion ? "Guardar cambios" : "Registrar paciente")" />
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private PacienteDto _paciente = new();
+    private bool EsEdicion => Id.HasValue;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _paciente = new PacienteDto();
+        if (EsEdicion)
+        {
+            var r = await Api.GetAsync<PacienteRespuesta>($"api/Paciente/{Id}");
+            if (r.Exito && r.Datos is { } p)
+            {
+                _paciente = new PacienteDto
+                {
+                    Nombres = p.Nombres, Apellidos = p.Apellidos, CI = p.CI, FechaNacimiento = p.FechaNacimiento,
+                    Telefono = p.Telefono, Email = p.Email, Direccion = p.Direccion
+                };
+            }
+            else
+            {
+                RegistrarError(r);
+                if (r.NoEncontrado) MensajeError = "El paciente no existe o fue eliminado.";
+            }
+        }
+        Cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = EsEdicion
+            ? await Api.PutAsync<PacienteRespuesta>($"api/Paciente/{Id}", _paciente)
+            : await Api.PostAsync<PacienteRespuesta>("api/Paciente", _paciente);
+        Enviando = false;
+
+        if (!r.Exito || r.Datos is null)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito(EsEdicion ? "Datos del paciente actualizados." : $"Paciente {r.Datos.NombreCompleto} registrado correctamente.");
+        Nav.NavigateTo($"pacientes/{r.Datos.Id}");
+    }
+}

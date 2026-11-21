@@ -1,0 +1,101 @@
+@page "/pacientes"
+
+<Encabezado Titulo="Pacientes" Subtitulo="@(Cargando ? "Cargando…" : $"{_pacientes.Count} pacientes registrados")">
+    <Acciones><a class="btn btn-filled" href="pacientes/nuevo"><span class="ms">person_add</span>Nuevo paciente</a></Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="6" />
+}
+else if (!SinConexion && _pacientes.Count == 0)
+{
+    <Vacio Icono="groups" Titulo="Aún no hay pacientes" Texto="Registra al primer paciente para empezar a agendar citas.">
+        <a class="btn btn-filled" href="pacientes/nuevo"><span class="ms">person_add</span>Registrar paciente</a>
+    </Vacio>
+}
+else if (_pacientes.Count > 0)
+{
+    <div class="buscador buscador-local mb-3">
+        <span class="ms">filter_list</span>
+        <input type="search" placeholder="Filtrar por nombre, CI o teléfono" @bind="Busqueda" @bind:event="oninput" aria-label="Filtrar pacientes" />
+    </div>
+
+    @if (Filtrados.Count == 0)
+    {
+        <Vacio Icono="search_off" Titulo="Sin coincidencias" Texto="Ningún paciente coincide con la búsqueda." />
+    }
+    else
+    {
+        <div class="tabla-contenedor">
+            <table class="tabla">
+                <thead><tr><th>Paciente</th><th>CI</th><th>Edad</th><th>Teléfono</th><th>Registrado</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in Filtrados)
+                    {
+                        <tr>
+                            <td>
+                                <a class="celda-persona text-reset" href="pacientes/@p.Id">
+                                    <Avatar Nombres="@p.Nombres" Apellidos="@p.Apellidos" />
+                                    <span><span class="d-block fw-medium">@p.NombreCompleto</span><span class="d-block text-muted small">@(p.Email ?? "Sin correo")</span></span>
+                                </a>
+                            </td>
+                            <td>@p.CI</td>
+                            <td>@Formato.Edad(p.FechaNacimiento, Hoy) años</td>
+                            <td>@p.Telefono</td>
+                            <td>@Formato.Fecha(p.FechaRegistro)</td>
+                            <td class="acciones-fila">
+                                <a class="btn-icono" href="pacientes/@p.Id" title="Historial de atención"><span class="ms">history</span></a>
+                                <a class="btn-icono" href="citas/nueva?paciente=@p.Id" title="Agendar cita"><span class="ms">edit_calendar</span></a>
+                                <a class="btn-icono" href="pacientes/@p.Id/editar" title="Editar"><span class="ms">edit</span></a>
+                                <button class="btn-icono peligro" title="Eliminar" @onclick="() => Eliminar(p)"><span class="ms">delete</span></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "busqueda")] public string? Busqueda { get; set; }
+
+    private List<PacienteRespuesta> _pacientes = new();
+
+    private List<PacienteRespuesta> Filtrados
+    {
+        get
+        {
+            var q = Formato.TextoBusqueda(Busqueda);
+            return string.IsNullOrWhiteSpace(q)
+                ? _pacientes
+                : _pacientes.Where(p => Formato.TextoBusqueda(p.Nombres, p.Apellidos, p.CI, p.Telefono, p.Email).Contains(q)).ToList();
+        }
+    }
+
+    protected override Task OnInitializedAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _pacientes = await PacientesAsync();
+        Cargando = false;
+    }
+
+    private async Task Eliminar(PacienteRespuesta p)
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar paciente?", $"Se eliminará a {p.NombreCompleto}. Esta acción no se puede deshacer.")) return;
+        var r = await Api.DeleteAsync($"api/Paciente/{p.Id}");
+        if (!r.Exito)
+        {
+            Notificar.Error(r.Mensaje);
+            return;
+        }
+        Notificar.Exito("Paciente eliminado correctamente.");
+        _pacientes.Remove(p);
+    }
+}

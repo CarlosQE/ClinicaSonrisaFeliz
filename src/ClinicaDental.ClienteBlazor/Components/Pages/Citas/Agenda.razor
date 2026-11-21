@@ -1,0 +1,122 @@
+@page "/citas/agenda"
+
+<Encabezado Titulo="Agenda del día" Subtitulo="@(Cargando ? "Cargando…" : $"{_citas.Count} citas · {_citas.Count(c => c.EstaVigente)} por atender")">
+    <Acciones><a class="btn btn-filled" href="@UrlNuevaCita"><span class="ms">edit_calendar</span>Nueva cita</a></Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+<div class="selector-dia">
+    <button class="btn btn-outlined btn-sm" @onclick="() => IrA(Hoy)">Hoy</button>
+    <button class="btn-icono" title="Día anterior" @onclick="() => IrA(_fecha.AddDays(-1))"><span class="ms">chevron_left</span></button>
+    <button class="btn-icono" title="Día siguiente" @onclick="() => IrA(_fecha.AddDays(1))"><span class="ms">chevron_right</span></button>
+    <span class="fecha-actual">@Formato.FechaLarga(_fecha)</span>
+    @if (_fecha == Hoy)
+    {
+        <span class="chip chip--primary">Hoy</span>
+    }
+    <div class="ms-auto d-flex flex-wrap align-items-center gap-2">
+        <input type="date" class="form-control form-control-sm w-auto" value="@_fecha.ToString("yyyy-MM-dd")" @onchange="CambiarFecha" aria-label="Elegir fecha" />
+        <select class="form-select form-select-sm w-auto" @onchange="CambiarOdontologo" aria-label="Odontólogo">
+            <option value="">Todos los odontólogos</option>
+            @foreach (var o in _odontologos)
+            {
+                <option value="@o.Id" selected="@(o.Id == _idOdontologo)">@o.NombreCompleto</option>
+            }
+        </select>
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="canceladas" checked="@_incluirCanceladas" @onchange="CambiarCanceladas" />
+            <label class="form-check-label small" for="canceladas">Ver canceladas</label>
+        </div>
+    </div>
+</div>
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else if (!SinConexion && _citas.Count == 0)
+{
+    <Vacio Icono="event_available" Titulo="No hay citas este día" Texto="Usa las flechas para cambiar de día o agenda una nueva cita.">
+        <a class="btn btn-tonal" href="citas/nueva?fecha=@_fecha.ToString("yyyy-MM-dd")"><span class="ms">add</span>Agendar cita</a>
+    </Vacio>
+}
+else if (_citas.Count > 0)
+{
+    <div class="tabla-contenedor">
+        <ul class="lista">
+            @foreach (var c in _citas)
+            {
+                <li>
+                    <a class="lista-item @(c.Estado == EstadoCita.Cancelada ? "opacity-50" : "")" href="citas/@c.Id">
+                        <span class="lista-hora"><b>@Formato.Hora(c.FechaHora)</b><span>@Formato.Hora(c.FechaHoraFin)</span></span>
+                        @if (c.Paciente is not null)
+                        {
+                            <Avatar Nombres="@c.Paciente.Nombres" Apellidos="@c.Paciente.Apellidos" />
+                        }
+                        <span class="lista-texto">
+                            <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
+                            <span class="lista-sub d-block"><span class="ms ms-sm">stethoscope</span> @c.Odontologo?.NombreCompleto · @c.Motivo</span>
+                        </span>
+                        @if (c.FechaHoraFin < Ahora && c.EstaVigente)
+                        {
+                            <span class="chip chip--neutral d-none d-md-inline-flex"><span class="ms">history</span>Hora pasada</span>
+                        }
+                        <ChipEstadoCita Estado="c.Estado" />
+                        <span class="ms text-muted">chevron_right</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "fecha")] public string? FechaQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "odontologo")] public Guid? OdontologoQuery { get; set; }
+
+    private string UrlNuevaCita => $"citas/nueva?fecha={_fecha:yyyy-MM-dd}" + (_idOdontologo is null ? "" : $"&odontologo={_idOdontologo}");
+    private DateOnly _fecha;
+    private Guid? _idOdontologo;
+    private bool _incluirCanceladas;
+    private List<CitaRespuesta> _citas = new();
+    private List<OdontologoRespuesta> _odontologos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fecha = DateOnly.TryParse(FechaQuery, out var f) ? f : Hoy;
+        _idOdontologo = OdontologoQuery;
+        _odontologos = await OdontologosAsync(soloActivos: false);
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var url = $"api/Cita/agenda?fecha={_fecha:yyyy-MM-dd}&incluirCanceladas={_incluirCanceladas.ToString().ToLowerInvariant()}"
+                  + (_idOdontologo.HasValue ? $"&idOdontologo={_idOdontologo}" : "");
+        _citas = await CargarAsync(url, new List<CitaRespuesta>());
+        Cargando = false;
+    }
+
+    private Task IrA(DateOnly fecha)
+    {
+        _fecha = fecha;
+        return Cargar();
+    }
+
+    private Task CambiarFecha(ChangeEventArgs e) => DateOnly.TryParse(e.Value?.ToString(), out var f) ? IrA(f) : Task.CompletedTask;
+
+    private Task CambiarOdontologo(ChangeEventArgs e)
+    {
+        _idOdontologo = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        return Cargar();
+    }
+
+    private Task CambiarCanceladas(ChangeEventArgs e)
+    {
+        _incluirCanceladas = e.Value is true;
+        return Cargar();
+    }
+}

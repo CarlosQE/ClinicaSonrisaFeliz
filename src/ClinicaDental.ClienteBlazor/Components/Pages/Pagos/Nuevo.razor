@@ -1,0 +1,111 @@
+@page "/pagos/nuevo"
+
+<Encabezado Titulo="Registrar pago" Subtitulo="Se puede pagar un tratamiento en partes; el monto no puede superar el saldo.">
+    <Migas><a href="pagos">Pagos</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="OnInitializedAsync" />
+
+@if (Cargando)
+{
+    <Cargando Filas="3" />
+}
+else if (!SinConexion && _deudas.Count == 0)
+{
+    <Vacio Icono="celebration" Titulo="No hay saldos pendientes" Texto="Todos los tratamientos están pagados por completo.">
+        <a class="btn btn-tonal" href="pagos">Ver pagos</a>
+    </Vacio>
+}
+else if (_deudas.Count > 0)
+{
+    <EditForm Model="_pago" OnValidSubmit="Guardar" class="formulario" FormName="pago">
+        <DataAnnotationsValidator />
+        <AvisoError Mensaje="@ErrorFormulario" />
+
+        <div class="formulario-seccion"><span class="ms">dentistry</span>Tratamiento a pagar</div>
+        <div class="form-floating mb-2">
+            <InputSelect id="tratamiento" class="form-select" @bind-Value="_pago.IdTratamiento" @bind-Value:after="AlElegirTratamiento">
+                <option value="">Selecciona un tratamiento con saldo…</option>
+                @foreach (var d in _deudas)
+                {
+                    <option value="@d.IdTratamiento">@d.PacienteNombre · @Formato.TextoTipo(d.Tipo) (@Formato.Fecha(d.Fecha)) · saldo @Formato.Dinero(d.Saldo)</option>
+                }
+            </InputSelect>
+            <label for="tratamiento">Tratamiento *</label>
+            <ValidationMessage For="() => _pago.IdTratamiento" />
+        </div>
+        @if (Seleccionada is { } sel)
+        {
+            <div class="aviso aviso-info">
+                <span class="ms">account_balance_wallet</span>
+                <div>Saldo pendiente: <b>@Formato.Dinero(sel.Saldo)</b>
+                    <button type="button" class="btn btn-text btn-sm ms-2" @onclick="() => _pago.Monto = sel.Saldo">Pagar todo</button></div>
+            </div>
+        }
+
+        <div class="formulario-seccion mt-4"><span class="ms">payments</span>Pago</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputNumber id="monto" class="form-control" @bind-Value="_pago.Monto" step="0.01" min="0.01" max="@(Seleccionada?.Saldo)" placeholder="Monto" />
+                <label for="monto">Monto (Bs) *</label>
+                <ValidationMessage For="() => _pago.Monto" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="observacion" class="form-control" @bind-Value="_pago.Observacion" placeholder="Observación" />
+                <label for="observacion">Observación</label>
+                <ValidationMessage For="() => _pago.Observacion" />
+            </div>
+        </div>
+
+        <div class="mt-3 mb-1 small text-muted">Método de pago</div>
+        <div class="chips-filtro">
+            @foreach (var m in Enum.GetValues<MetodoPago>())
+            {
+                <button type="button" class="chip-filtro @(_pago.Metodo == m ? "activo" : "")" @onclick="() => _pago.Metodo = m"><span class="ms ms-sm">@Formato.Icono(m)</span>@Formato.Texto(m)</button>
+            }
+        </div>
+
+        <div class="formulario-acciones">
+            <a class="btn btn-text" href="pagos">Cancelar</a>
+            <BotonEnviar Enviando="Enviando" Texto="Registrar y emitir comprobante" TextoEnviando="Registrando…" Icono="check" />
+        </div>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "tratamiento")] public Guid? TratamientoQuery { get; set; }
+
+    private readonly PagoDto _pago = new();
+    private List<DeudaRespuesta> _deudas = new();
+    private DeudaRespuesta? Seleccionada => _deudas.FirstOrDefault(d => d.IdTratamiento == _pago.IdTratamiento);
+
+    protected override async Task OnInitializedAsync()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _deudas = await CargarAsync("api/Pago/deudas", new List<DeudaRespuesta>());
+        _pago.IdTratamiento = TratamientoQuery;
+        AlElegirTratamiento();
+        Cargando = false;
+    }
+
+    private void AlElegirTratamiento()
+    {
+        if (Seleccionada is { } d) _pago.Monto = d.Saldo;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PostAsync<PagoRespuesta>("api/Pago", _pago);
+        Enviando = false;
+        if (!r.Exito || r.Datos is null)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito($"Pago registrado. Comprobante {r.Datos.NumeroComprobante}.");
+        Nav.NavigateTo($"pagos/{r.Datos.Id}/comprobante");
+    }
+}

@@ -1,0 +1,11 @@
+@* Envía al login conservando la página a la que se quería entrar (?volver=). *@
+@inject NavigationManager Nav
+
+@code {
+    protected override void OnInitialized()
+    {
+        var actual = Nav.ToBaseRelativePath(Nav.Uri);
+        var destino = string.IsNullOrEmpty(actual) || actual.StartsWith("login") ? "login" : $"login?volver={Uri.EscapeDataString("/" + actual)}";
+        Nav.NavigateTo(destino, replace: true);
+    }
+}

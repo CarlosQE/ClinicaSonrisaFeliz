@@ -1,0 +1,122 @@
+@page "/citas/nueva"
+
+<Encabezado Titulo="Agendar cita" Subtitulo="La cita debe caer dentro del horario del odontólogo y no cruzarse con otra.">
+    <Migas><a href="citas">Citas</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" />
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <EditForm Model="_cita" OnValidSubmit="Guardar" class="formulario" FormName="cita">
+                <DataAnnotationsValidator />
+                <AvisoError Mensaje="@ErrorFormulario" />
+
+                <div class="formulario-seccion"><span class="ms">person</span>¿Quién y con quién?</div>
+                <div class="form-floating mb-3">
+                    <InputSelect id="paciente" class="form-select" @bind-Value="_cita.IdPaciente">
+                        <option value="">Selecciona un paciente…</option>
+                        @foreach (var p in _pacientes)
+                        {
+                            <option value="@p.Id">@p.Apellidos, @p.Nombres · CI @p.CI</option>
+                        }
+                    </InputSelect>
+                    <label for="paciente">Paciente *</label>
+                    <ValidationMessage For="() => _cita.IdPaciente" />
+                    <div class="ayuda">¿No está en la lista? <a href="pacientes/nuevo">Registrar paciente nuevo</a></div>
+                </div>
+                <div class="form-floating mb-3">
+                    <InputSelect id="odontologo" class="form-select" @bind-Value="_cita.IdOdontologo">
+                        <option value="">Selecciona un odontólogo…</option>
+                        @foreach (var o in _odontologos)
+                        {
+                            <option value="@o.Id">@o.NombreCompleto · @o.Especialidad?.Nombre</option>
+                        }
+                    </InputSelect>
+                    <label for="odontologo">Odontólogo *</label>
+                    <ValidationMessage For="() => _cita.IdOdontologo" />
+                </div>
+
+                <div class="formulario-seccion mt-4"><span class="ms">event</span>¿Cuándo?</div>
+                <div class="row g-3">
+                    <div class="col-md-7 form-floating">
+                        <InputDate Type="InputDateType.DateTimeLocal" id="fecha-hora" class="form-control" @bind-Value="_cita.FechaHora" step="900" />
+                        <label for="fecha-hora">Fecha y hora *</label>
+                        <ValidationMessage For="() => _cita.FechaHora" />
+                    </div>
+                    <div class="col-md-5 form-floating">
+                        <InputSelect id="duracion" class="form-select" @bind-Value="_cita.DuracionMinutos">
+                            @foreach (var m in Duraciones)
+                            {
+                                <option value="@m">@m minutos</option>
+                            }
+                        </InputSelect>
+                        <label for="duracion">Duración</label>
+                    </div>
+                </div>
+
+                <div class="form-floating mt-3">
+                    <InputText id="motivo" class="form-control" @bind-Value="_cita.Motivo" placeholder="Motivo" />
+                    <label for="motivo">Motivo de la consulta *</label>
+                    <ValidationMessage For="() => _cita.Motivo" />
+                </div>
+
+                <div class="formulario-acciones">
+                    <a class="btn btn-text" href="citas/agenda">Cancelar</a>
+                    <BotonEnviar Enviando="Enviando" Texto="Agendar cita" TextoEnviando="Agendando…" Icono="event_available" />
+                </div>
+            </EditForm>
+        </div>
+        <div class="col-xl-5">
+            <HorariosLibres IdOdontologo="_cita.IdOdontologo" Fecha="@(_cita.FechaHora is { } f ? DateOnly.FromDateTime(f) : null)"
+                            Duracion="_cita.DuracionMinutos" Seleccionado="_cita.FechaHora" AlElegir="h => _cita.FechaHora = h" />
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly int[] Duraciones = [15, 30, 45, 60, 90, 120];
+
+    [SupplyParameterFromQuery(Name = "paciente")] public Guid? PacienteQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "odontologo")] public Guid? OdontologoQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "fecha")] public string? FechaQuery { get; set; }
+
+    private readonly CitaDto _cita = new();
+    private List<PacienteRespuesta> _pacientes = new();
+    private List<OdontologoRespuesta> _odontologos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cita.IdPaciente = PacienteQuery;
+        _cita.IdOdontologo = OdontologoQuery;
+        if (DateOnly.TryParse(FechaQuery, out var f) && f >= Hoy) _cita.FechaHora = f.ToDateTime(new TimeOnly(9, 0));
+
+        var p = PacientesAsync();
+        var o = OdontologosAsync();
+        await Task.WhenAll(p, o);
+        _pacientes = p.Result;
+        _odontologos = o.Result;
+        Cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PostAsync<CitaRespuesta>("api/Cita", _cita);
+        Enviando = false;
+        if (!r.Exito || r.Datos is null)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito($"Cita agendada para el {Formato.FechaHora(r.Datos.FechaHora)}.");
+        Nav.NavigateTo($"citas/{r.Datos.Id}");
+    }
+}

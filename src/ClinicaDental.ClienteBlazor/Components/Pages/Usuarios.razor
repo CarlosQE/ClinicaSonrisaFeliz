@@ -1,0 +1,151 @@
+@page "/usuarios"
+
+<AuthorizeView Roles="@Roles.Administrador" Context="auth">
+    <Authorized>
+        <Encabezado Titulo="Usuarios del sistema" Subtitulo="Cuentas del personal que puede ingresar al sistema" />
+
+        @if (Cargando)
+        {
+            <Cargando />
+        }
+        else
+        {
+            <AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+            <div class="row g-4">
+                <div class="col-xl-7">
+                    <div class="tabla-contenedor">
+                        <table class="tabla">
+                            <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var u in _usuarios)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="celda-persona">
+                                                <span class="avatar" style="background:@Formato.ColorAvatar(u.NombreCompleto)">@Formato.IniciasDe(u.NombreCompleto)</span>
+                                                <span><span class="d-block fw-medium">@u.NombreCompleto</span><span class="d-block small text-muted">@@@u.NombreUsuario</span></span>
+                                            </span>
+                                        </td>
+                                        <td><span class="chip chip--tertiary">@Roles.Texto(u.Rol)</span></td>
+                                        <td>
+                                            @if (!u.Activo)
+                                            {
+                                                <span class="chip chip--neutral"><span class="ms">block</span>Inactivo</span>
+                                            }
+                                            else if (u.Bloqueado)
+                                            {
+                                                <span class="chip chip--warn"><span class="ms">lock_clock</span>Bloqueado</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="chip chip--success"><span class="ms">check_circle</span>Activo</span>
+                                            }
+                                        </td>
+                                        <td class="small">@(u.UltimoAcceso is { } f ? Formato.FechaHora(f) : "Nunca")</td>
+                                        <td class="acciones-fila">
+                                            @if (u.Activo)
+                                            {
+                                                <button class="btn btn-texto-peligro btn-sm" @onclick="() => CambiarEstado(u, false)"><span class="ms">person_off</span>Desactivar</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-text btn-sm" @onclick="() => CambiarEstado(u, true)"><span class="ms">person_check</span>Activar</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="ayuda mt-2">Activar una cuenta también la desbloquea si tenía intentos fallidos.</p>
+                </div>
+
+                <div class="col-xl-5">
+                    <div class="tarjeta">
+                        <h2><span class="ms me-1">person_add</span>Nuevo usuario</h2>
+                        <AvisoError Mensaje="@ErrorFormulario" />
+                        <EditForm Model="_nuevo" OnValidSubmit="Registrar" FormName="nuevo-usuario">
+                            <DataAnnotationsValidator />
+                            <div class="form-floating mb-3">
+                                <InputText id="nombre" class="form-control" @bind-Value="_nuevo.NombreCompleto" placeholder="Nombre" />
+                                <label for="nombre">Nombre completo *</label>
+                                <ValidationMessage For="() => _nuevo.NombreCompleto" />
+                            </div>
+                            <div class="form-floating mb-3">
+                                <InputText id="usuario" class="form-control" @bind-Value="_nuevo.NombreUsuario" placeholder="Usuario" autocomplete="off" />
+                                <label for="usuario">Nombre de usuario *</label>
+                                <ValidationMessage For="() => _nuevo.NombreUsuario" />
+                            </div>
+                            <div class="form-floating mb-3">
+                                <InputSelect id="rol" class="form-select" @bind-Value="_nuevo.Rol">
+                                    @foreach (var r in Roles.Todos)
+                                    {
+                                        <option value="@r">@Roles.Texto(r)</option>
+                                    }
+                                </InputSelect>
+                                <label for="rol">Rol *</label>
+                            </div>
+                            <div class="form-floating mb-1">
+                                <input id="contrasena" type="password" class="form-control" @bind="_nuevo.Contrasena" @bind:event="oninput" placeholder="Contraseña" autocomplete="new-password" />
+                                <label for="contrasena">Contraseña temporal *</label>
+                                <ValidationMessage For="() => _nuevo.Contrasena" />
+                            </div>
+                            <IndicadorContrasena Contrasena="@_nuevo.Contrasena" />
+                            <div class="form-floating mb-3 mt-3">
+                                <InputText id="confirmar" type="password" class="form-control" @bind-Value="_nuevo.ConfirmarContrasena" placeholder="Confirmar" autocomplete="new-password" />
+                                <label for="confirmar">Confirmar contraseña *</label>
+                                <ValidationMessage For="() => _nuevo.ConfirmarContrasena" />
+                            </div>
+                            <BotonEnviar Enviando="Enviando" Texto="Crear usuario" Icono="person_add" Clase="btn-filled w-100" />
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <Vacio Icono="lock" Titulo="Acceso restringido" Texto="Solo un administrador puede gestionar los usuarios del sistema.">
+            <a class="btn btn-tonal" href="">Volver al inicio</a>
+        </Vacio>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<UsuarioRespuesta> _usuarios = new();
+    private RegistrarUsuarioDto _nuevo = new();
+
+    protected override Task OnInitializedAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _usuarios = await CargarAsync("api/Auth/usuarios", new List<UsuarioRespuesta>());
+        Cargando = false;
+    }
+
+    private async Task Registrar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PostAsync<UsuarioRespuesta>("api/Auth/usuarios", _nuevo);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito($"Usuario «{r.Datos?.NombreUsuario}» creado. Entrégale su contraseña temporal.");
+        _nuevo = new RegistrarUsuarioDto();
+        await Cargar();
+    }
+
+    private async Task CambiarEstado(UsuarioRespuesta u, bool activo)
+    {
+        if (!activo && !await Dialogo.ConfirmarAsync("¿Desactivar usuario?", $"{u.NombreCompleto} ya no podrá iniciar sesión.", "Desactivar")) return;
+        var r = await Api.PutAsync<UsuarioRespuesta>($"api/Auth/usuarios/{u.Id}/estado", new CambiarEstadoUsuarioDto { Activo = activo });
+        if (r.Exito) Notificar.Exito(activo ? "Usuario activado." : "Usuario desactivado.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+}

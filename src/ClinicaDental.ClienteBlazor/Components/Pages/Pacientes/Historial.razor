@@ -1,0 +1,154 @@
+@page "/pacientes/{Id:guid}"
+
+<PageTitle>@(_historial?.Paciente.NombreCompleto ?? "Paciente") · Sonrisa Feliz</PageTitle>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="5" />
+}
+else if (_historial is { } h)
+{
+    var p = h.Paciente;
+    <div class="migas"><a href="pacientes">Pacientes</a><span class="ms">chevron_right</span>Historial</div>
+
+    <div class="tarjeta mb-4 d-flex flex-wrap align-items-center gap-4">
+        <Avatar Nombres="@p.Nombres" Apellidos="@p.Apellidos" Clase="avatar-lg" />
+        <div class="flex-grow-1">
+            <h1 class="h3 mb-1">@p.NombreCompleto</h1>
+            <div class="text-muted">CI @p.CI · @Formato.Edad(p.FechaNacimiento, Hoy) años · Paciente desde @Formato.Fecha(p.FechaRegistro)</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-filled" href="citas/nueva?paciente=@p.Id"><span class="ms">edit_calendar</span>Agendar cita</a>
+            <a class="btn btn-tonal" href="tratamientos/nuevo?paciente=@p.Id"><span class="ms">dentistry</span>Tratamiento</a>
+            <a class="btn btn-outlined" href="pacientes/@p.Id/editar"><span class="ms">edit</span>Editar</a>
+            <button type="button" class="btn btn-texto-peligro" @onclick="Eliminar"><span class="ms">delete</span>Eliminar</button>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="tarjeta-borde mb-3">
+                <h2>Datos de contacto</h2>
+                <dl class="datos una-columna">
+                    <div><dt>Teléfono</dt><dd>@p.Telefono</dd></div>
+                    <div><dt>Correo electrónico</dt><dd>@(p.Email ?? "—")</dd></div>
+                    <div><dt>Dirección</dt><dd>@(p.Direccion ?? "—")</dd></div>
+                    <div><dt>Fecha de nacimiento</dt><dd>@Formato.Fecha(p.FechaNacimiento)</dd></div>
+                </dl>
+            </div>
+            <div class="tarjeta-borde">
+                <h2>Saldo pendiente</h2>
+                @if (_deudas.Count == 0)
+                {
+                    <p class="mb-0 text-muted"><span class="ms ms-sm text-success">check_circle</span> Sin deudas pendientes.</p>
+                }
+                else
+                {
+                    <div class="kpi-valor mb-2">@Formato.Dinero(_deudas.Sum(d => d.Saldo))</div>
+                    <ul class="lista">
+                        @foreach (var d in _deudas)
+                        {
+                            <li><a class="lista-item px-0" href="pagos/nuevo?tratamiento=@d.IdTratamiento">
+                                <span class="lista-texto"><span class="lista-titulo d-block">@Formato.TextoTipo(d.Tipo)</span><span class="lista-sub d-block">@Formato.Fecha(d.Fecha)</span></span>
+                                <span class="chip chip--warn">@Formato.Dinero(d.Saldo)</span>
+                            </a></li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="tarjeta-borde mb-3">
+                <div class="tarjeta-titulo"><h2>Citas (@h.Citas.Count)</h2></div>
+                @if (h.Citas.Count == 0)
+                {
+                    <p class="text-muted mb-0">El paciente aún no tiene citas registradas.</p>
+                }
+                else
+                {
+                    <ul class="linea-tiempo">
+                        @foreach (var c in h.Citas)
+                        {
+                            <li>
+                                <span class="punto @(c.Estado == EstadoCita.Atendida ? "tono-exito" : c.Estado == EstadoCita.Cancelada ? "tono-secundario" : "tono-primario")"><span class="ms ms-sm">@Formato.Icono(c.Estado)</span></span>
+                                <a class="lista-texto text-reset" href="citas/@c.Id">
+                                    <span class="lista-titulo d-block">@c.Motivo</span>
+                                    <span class="lista-sub d-block">@Formato.FechaHora(c.FechaHora) · @c.Odontologo?.NombreCompleto</span>
+                                </a>
+                                <ChipEstadoCita Estado="c.Estado" />
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="tarjeta-borde">
+                <div class="tarjeta-titulo"><h2>Tratamientos (@h.Tratamientos.Count)</h2></div>
+                @if (h.Tratamientos.Count == 0)
+                {
+                    <p class="text-muted mb-0">El paciente aún no tiene tratamientos registrados.</p>
+                }
+                else
+                {
+                    <ul class="linea-tiempo">
+                        @foreach (var t in h.Tratamientos)
+                        {
+                            <li>
+                                <span class="punto tono-terciario"><span class="ms ms-sm">@Formato.Icono(t.Tipo)</span></span>
+                                <a class="lista-texto text-reset" href="tratamientos/@t.Id">
+                                    <span class="lista-titulo d-block">@Formato.Texto(t.Tipo)</span>
+                                    <span class="lista-sub d-block">@Formato.Fecha(t.Fecha) · @t.Odontologo?.NombreCompleto @(string.IsNullOrWhiteSpace(t.Observaciones) ? "" : " · " + t.Observaciones)</span>
+                                </a>
+                                <span class="fw-medium text-nowrap">@Formato.Dinero(t.Costo)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private HistorialPacienteRespuesta? _historial;
+    private List<DeudaRespuesta> _deudas = new();
+
+    protected override Task OnParametersSetAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var r = await Api.GetAsync<HistorialPacienteRespuesta>($"api/Paciente/{Id}/historial");
+        if (r.Exito)
+        {
+            _historial = r.Datos;
+            _deudas = await CargarAsync($"api/Pago/deudas?idPaciente={Id}", new List<DeudaRespuesta>());
+        }
+        else
+        {
+            _historial = null;
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "El paciente no existe o fue eliminado.";
+        }
+        Cargando = false;
+    }
+
+    private async Task Eliminar()
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar paciente?", "Solo se puede eliminar un paciente sin citas ni tratamientos. Esta acción no se puede deshacer.")) return;
+        var r = await Api.DeleteAsync($"api/Paciente/{Id}");
+        if (!r.Exito)
+        {
+            Notificar.Error(r.Mensaje);
+            return;
+        }
+        Notificar.Exito("Paciente eliminado correctamente.");
+        Nav.NavigateTo("pacientes");
+    }
+}

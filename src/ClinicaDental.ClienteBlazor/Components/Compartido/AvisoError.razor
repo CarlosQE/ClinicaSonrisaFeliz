@@ -1,0 +1,25 @@
+@* Aviso de error estándar. Con SinConexion=true muestra el estado "API apagada" con botón Reintentar. *@
+@if (SinConexion)
+{
+    <div class="aviso aviso-error" role="alert">
+        <span class="ms">cloud_off</span>
+        <div>
+            <strong>Sin conexión con la API.</strong>
+            Inicia el proyecto <code>ClinicaDental.Web</code> (y su base de datos SQL Server) y vuelve a intentarlo.
+            @if (AlReintentar.HasDelegate)
+            {
+                <div class="mt-2"><button type="button" class="btn btn-sm btn-outlined" @onclick="AlReintentar"><span class="ms">refresh</span>Reintentar</button></div>
+            }
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(Mensaje))
+{
+    <div class="aviso aviso-error" role="alert"><span class="ms">error</span><div>@Mensaje</div></div>
+}
+
+@code {
+    [Parameter] public string? Mensaje { get; set; }
+    [Parameter] public bool SinConexion { get; set; }
+    [Parameter] public EventCallback AlReintentar { get; set; }
+}

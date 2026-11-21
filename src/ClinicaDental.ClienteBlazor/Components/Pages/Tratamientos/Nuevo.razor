@@ -1,0 +1,157 @@
+@page "/tratamientos/nuevo"
+
+<Encabezado Titulo="Registrar tratamiento"
+            Subtitulo="@(_citaOrigen is null ? null : $"Desde la cita del {Formato.FechaHora(_citaOrigen.FechaHora)} · al guardar, la cita quedará como Atendida.")">
+    <Migas><a href="tratamientos">Tratamientos</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" />
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else
+{
+    <EditForm Model="_tratamiento" OnValidSubmit="Guardar" class="formulario" FormName="tratamiento">
+        <DataAnnotationsValidator />
+        <AvisoError Mensaje="@ErrorFormulario" />
+
+        <div class="formulario-seccion"><span class="ms">dentistry</span>Tipo de tratamiento</div>
+        <div class="row row-cols-2 row-cols-md-4 g-2 mb-2">
+            @foreach (var t in Enum.GetValues<TipoTratamiento>())
+            {
+                <div class="col">
+                    <button type="button" class="tarjeta-borde opcion-tipo w-100 py-3 h-100 @(_tratamiento.Tipo == t ? "seleccionada" : "")" @onclick="() => _tratamiento.Tipo = t" aria-pressed="@(_tratamiento.Tipo == t)">
+                        <span class="ms ms-lg d-block mb-1">@Formato.Icono(t)</span>
+                        <span class="fw-medium">@Formato.Texto(t)</span>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="formulario-seccion mt-4"><span class="ms">person</span>Paciente y profesional</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputSelect id="paciente" class="form-select" @bind-Value="_tratamiento.IdPaciente" @bind-Value:after="CargarCitasDelPaciente">
+                    <option value="">Selecciona…</option>
+                    @foreach (var p in _pacientes)
+                    {
+                        <option value="@p.Id">@p.Apellidos, @p.Nombres · CI @p.CI</option>
+                    }
+                </InputSelect>
+                <label for="paciente">Paciente *</label>
+                <ValidationMessage For="() => _tratamiento.IdPaciente" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputSelect id="odontologo" class="form-select" @bind-Value="_tratamiento.IdOdontologo">
+                    <option value="">Selecciona…</option>
+                    @foreach (var o in _odontologos)
+                    {
+                        <option value="@o.Id">@o.NombreCompleto · @o.Especialidad?.Nombre</option>
+                    }
+                </InputSelect>
+                <label for="odontologo">Odontólogo *</label>
+                <ValidationMessage For="() => _tratamiento.IdOdontologo" />
+            </div>
+            <div class="col-12 form-floating">
+                <InputSelect id="cita" class="form-select" @bind-Value="_tratamiento.IdCita" disabled="@(_tratamiento.IdPaciente is null)">
+                    <option value="">Sin cita asociada</option>
+                    @foreach (var c in _citasPaciente)
+                    {
+                        <option value="@c.Id">@Formato.FechaHora(c.FechaHora) · @c.Motivo (@Formato.Texto(c.Estado))</option>
+                    }
+                </InputSelect>
+                <label for="cita">Cita asociada (opcional)</label>
+                @if (_tratamiento.IdPaciente is null)
+                {
+                    <div class="ayuda">Elige primero al paciente para ver sus citas.</div>
+                }
+            </div>
+        </div>
+
+        <div class="formulario-seccion mt-4"><span class="ms">receipt</span>Detalle</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputDate id="fecha" class="form-control" @bind-Value="_tratamiento.Fecha" max="@Hoy.ToString("yyyy-MM-dd")" />
+                <label for="fecha">Fecha</label>
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputNumber id="costo" class="form-control" @bind-Value="_tratamiento.Costo" step="0.01" min="0.01" placeholder="Costo" />
+                <label for="costo">Costo (Bs) *</label>
+                <ValidationMessage For="() => _tratamiento.Costo" />
+            </div>
+            <div class="col-12 form-floating">
+                <InputTextArea id="observaciones" class="form-control alto-120" @bind-Value="_tratamiento.Observaciones" placeholder="Observaciones" />
+                <label for="observaciones">Observaciones clínicas</label>
+                <ValidationMessage For="() => _tratamiento.Observaciones" />
+            </div>
+        </div>
+
+        <div class="formulario-acciones">
+            <a class="btn btn-text" href="tratamientos">Cancelar</a>
+            <BotonEnviar Enviando="Enviando" Texto="Registrar tratamiento" />
+        </div>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "cita")] public Guid? CitaQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "paciente")] public Guid? PacienteQuery { get; set; }
+
+    private readonly TratamientoDto _tratamiento = new();
+    private CitaRespuesta? _citaOrigen;
+    private List<PacienteRespuesta> _pacientes = new();
+    private List<OdontologoRespuesta> _odontologos = new();
+    private List<CitaRespuesta> _todasCitas = new();
+    private List<CitaRespuesta> _citasPaciente = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tratamiento.Fecha = Hoy;
+        _tratamiento.IdPaciente = PacienteQuery;
+
+        var p = PacientesAsync();
+        var o = OdontologosAsync();
+        var c = CargarAsync("api/Cita", new List<CitaRespuesta>());
+        await Task.WhenAll(p, o, c);
+        _pacientes = p.Result;
+        _odontologos = o.Result;
+        _todasCitas = c.Result;
+
+        if (CitaQuery is Guid idCita && _todasCitas.FirstOrDefault(x => x.Id == idCita) is { } cita)
+        {
+            _citaOrigen = cita;
+            _tratamiento.IdPaciente = cita.IdPaciente;
+            _tratamiento.IdOdontologo = cita.IdOdontologo;
+            _tratamiento.Fecha = DateOnly.FromDateTime(cita.FechaHora);
+        }
+        CargarCitasDelPaciente();
+        if (_citaOrigen is not null) _tratamiento.IdCita = _citaOrigen.Id;
+        Cargando = false;
+    }
+
+    private void CargarCitasDelPaciente()
+    {
+        _citasPaciente = _todasCitas
+            .Where(c => c.IdPaciente == _tratamiento.IdPaciente && c.Estado != EstadoCita.Cancelada)
+            .OrderByDescending(c => c.FechaHora)
+            .ToList();
+        if (_tratamiento.IdCita is Guid id && _citasPaciente.All(c => c.Id != id)) _tratamiento.IdCita = null;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PostAsync<TratamientoRespuesta>("api/Tratamiento", _tratamiento);
+        Enviando = false;
+        if (!r.Exito || r.Datos is null)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito($"{Formato.Texto(_tratamiento.Tipo)} registrada por {Formato.Dinero(_tratamiento.Costo)}.");
+        Nav.NavigateTo($"tratamientos/{r.Datos.Id}");
+    }
+}

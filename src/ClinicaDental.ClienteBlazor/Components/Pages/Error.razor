@@ -1,0 +1,24 @@
+﻿@page "/Error"
+@layout LayoutAcceso
+@using System.Diagnostics
+
+<PageTitle>Error · Sonrisa Feliz</PageTitle>
+
+<div class="acceso-tarjeta error-pagina">
+    <div class="codigo">500</div>
+    <h1 class="h3 mt-3">Algo salió mal</h1>
+    <p class="text-muted">Ocurrió un error inesperado. Intenta nuevamente en unos segundos.</p>
+    @if (!string.IsNullOrEmpty(_idSolicitud))
+    {
+        <p class="ayuda">Id de solicitud: <code>@_idSolicitud</code></p>
+    }
+    <a class="btn btn-filled mt-3" href=""><span class="ms">home</span>Ir al inicio</a>
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+    private string? _idSolicitud;
+
+    protected override void OnInitialized() =>
+        _idSolicitud = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

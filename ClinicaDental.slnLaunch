@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "API + Cliente web",
+    "Projects": [
+      {
+        "Path": "src\\ClinicaDental.Web\\ClinicaDental.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\\ClinicaDental.ClienteBlazor\\ClinicaDental.ClienteBlazor.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]

@@ -1,0 +1,121 @@
+@page "/odontologos/nuevo"
+@page "/odontologos/{Id:guid}/editar"
+
+<Encabezado Titulo="@(EsEdicion ? "Editar odontólogo" : "Nuevo odontólogo")" Subtitulo="@(EsEdicion ? null : "Después de registrarlo podrás definir sus horarios de trabajo.")">
+    <Migas><a href="odontologos">Odontólogos</a></Migas>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" />
+
+@if (Cargando)
+{
+    <Cargando Filas="3" />
+}
+else if (!NoEncontrado)
+{
+    <EditForm Model="_odontologo" OnValidSubmit="Guardar" class="formulario" FormName="odontologo">
+        <DataAnnotationsValidator />
+        <AvisoError Mensaje="@ErrorFormulario" />
+
+        <div class="formulario-seccion"><span class="ms">badge</span>Datos profesionales</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputText id="nombres" class="form-control" @bind-Value="_odontologo.Nombres" placeholder="Nombres" />
+                <label for="nombres">Nombres *</label>
+                <ValidationMessage For="() => _odontologo.Nombres" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="apellidos" class="form-control" @bind-Value="_odontologo.Apellidos" placeholder="Apellidos" />
+                <label for="apellidos">Apellidos *</label>
+                <ValidationMessage For="() => _odontologo.Apellidos" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="matricula" class="form-control" @bind-Value="_odontologo.Matricula" placeholder="Matrícula" />
+                <label for="matricula">Matrícula profesional *</label>
+                <ValidationMessage For="() => _odontologo.Matricula" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputSelect id="especialidad" class="form-select" @bind-Value="_odontologo.IdEspecialidad">
+                    <option value="">Selecciona…</option>
+                    @foreach (var e in _especialidades)
+                    {
+                        <option value="@e.Id">@e.Nombre</option>
+                    }
+                </InputSelect>
+                <label for="especialidad">Especialidad *</label>
+                <ValidationMessage For="() => _odontologo.IdEspecialidad" />
+            </div>
+        </div>
+
+        <div class="formulario-seccion mt-4"><span class="ms">contact_phone</span>Contacto</div>
+        <div class="row g-3">
+            <div class="col-md-6 form-floating">
+                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_odontologo.Telefono" placeholder="Teléfono" />
+                <label for="telefono">Teléfono *</label>
+                <ValidationMessage For="() => _odontologo.Telefono" />
+            </div>
+            <div class="col-md-6 form-floating">
+                <InputText id="email" type="email" class="form-control" @bind-Value="_odontologo.Email" placeholder="Correo" />
+                <label for="email">Correo electrónico</label>
+                <ValidationMessage For="() => _odontologo.Email" />
+            </div>
+        </div>
+
+        <div class="formulario-acciones">
+            <a class="btn btn-text" href="odontologos">Cancelar</a>
+            <BotonEnviar Enviando="Enviando" Texto="@(EsEdicion ? "Guardar cambios" : "Registrar odontólogo")" />
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private OdontologoDto _odontologo = new();
+    private List<EspecialidadRespuesta> _especialidades = new();
+    private bool EsEdicion => Id.HasValue;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _odontologo = new OdontologoDto();
+        _especialidades = await EspecialidadesAsync();
+        if (EsEdicion)
+        {
+            var r = await Api.GetAsync<OdontologoRespuesta>($"api/Odontologo/{Id}");
+            if (r.Exito && r.Datos is { } o)
+            {
+                _odontologo = new OdontologoDto
+                {
+                    Nombres = o.Nombres, Apellidos = o.Apellidos, Matricula = o.Matricula,
+                    Telefono = o.Telefono, Email = o.Email, IdEspecialidad = o.IdEspecialidad
+                };
+            }
+            else
+            {
+                RegistrarError(r);
+                if (r.NoEncontrado) MensajeError = "El odontólogo no existe.";
+            }
+        }
+        Cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = EsEdicion
+            ? await Api.PutAsync<OdontologoRespuesta>($"api/Odontologo/{Id}", _odontologo)
+            : await Api.PostAsync<OdontologoRespuesta>("api/Odontologo", _odontologo);
+        Enviando = false;
+
+        if (!r.Exito || r.Datos is null)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito(EsEdicion ? "Datos del odontólogo actualizados." : "Odontólogo registrado. Ahora define su horario de trabajo.");
+        Nav.NavigateTo(EsEdicion ? "odontologos" : $"odontologos/{r.Datos.Id}");
+    }
+}

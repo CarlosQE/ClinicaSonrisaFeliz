@@ -1,0 +1,119 @@
+@page "/tratamientos"
+
+<Encabezado Titulo="Tratamientos" Subtitulo="@(Cargando ? "Cargando…" : $"{_tratamientos.Count} tratamientos · {Formato.Dinero(_tratamientos.Sum(t => t.Costo))} en total")">
+    <Acciones><a class="btn btn-filled" href="tratamientos/nuevo@(_idPaciente is null ? "" : $"?paciente={_idPaciente}")"><span class="ms">add</span>Registrar tratamiento</a></Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+<div class="chips-filtro">
+    <button class="chip-filtro @(_tipo is null ? "activo" : "")" @onclick="() => Filtrar(() => _tipo = null)">Todos</button>
+    @foreach (var t in Enum.GetValues<TipoTratamiento>())
+    {
+        <button class="chip-filtro @(_tipo == t ? "activo" : "")" @onclick="() => Filtrar(() => _tipo = t)"><span class="ms ms-sm">@Formato.Icono(t)</span>@Formato.Texto(t)</button>
+    }
+</div>
+
+<div class="row g-2 mb-3 filtros-ancho">
+    <div class="col-sm-6">
+        <select class="form-select" @onchange="e => Filtrar(() => _idPaciente = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null)" aria-label="Paciente">
+            <option value="">Todos los pacientes</option>
+            @foreach (var p in _pacientes)
+            {
+                <option value="@p.Id" selected="@(p.Id == _idPaciente)">@p.Apellidos, @p.Nombres</option>
+            }
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <select class="form-select" @onchange="e => Filtrar(() => _idOdontologo = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null)" aria-label="Odontólogo">
+            <option value="">Todos los odontólogos</option>
+            @foreach (var o in _odontologos)
+            {
+                <option value="@o.Id" selected="@(o.Id == _idOdontologo)">@o.NombreCompleto</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (Cargando)
+{
+    <Cargando Filas="5" />
+}
+else if (!SinConexion && _tratamientos.Count == 0)
+{
+    <Vacio Icono="dentistry" Titulo="No hay tratamientos con estos filtros" Texto="Los tratamientos se registran desde aquí o desde el detalle de una cita." />
+}
+else if (_tratamientos.Count > 0)
+{
+    <div class="tabla-contenedor">
+        <table class="tabla">
+            <thead><tr><th>Fecha</th><th>Tratamiento</th><th>Paciente</th><th>Odontólogo</th><th>Observaciones</th><th class="num">Costo</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var t in _tratamientos)
+                {
+                    <tr>
+                        <td class="text-nowrap">@Formato.Fecha(t.Fecha)</td>
+                        <td><span class="chip chip--tertiary"><span class="ms">@Formato.Icono(t.Tipo)</span>@Formato.Texto(t.Tipo)</span></td>
+                        <td><a href="pacientes/@t.IdPaciente">@t.Paciente?.NombreCompleto</a></td>
+                        <td>@t.Odontologo?.NombreCompleto</td>
+                        <td class="text-muted small celda-observaciones">@(t.Observaciones ?? "—")</td>
+                        <td class="num fw-medium">@Formato.Dinero(t.Costo)</td>
+                        <td class="acciones-fila">
+                            <a class="btn-icono" href="tratamientos/@t.Id" title="Ver detalle"><span class="ms">visibility</span></a>
+                            <a class="btn-icono" href="pagos/nuevo?tratamiento=@t.Id" title="Registrar pago"><span class="ms">add_card</span></a>
+                            <button class="btn-icono peligro" title="Eliminar" @onclick="() => Eliminar(t)"><span class="ms">delete</span></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "paciente")] public Guid? PacienteQuery { get; set; }
+
+    private List<TratamientoRespuesta> _tratamientos = new();
+    private List<PacienteRespuesta> _pacientes = new();
+    private List<OdontologoRespuesta> _odontologos = new();
+    private TipoTratamiento? _tipo;
+    private Guid? _idPaciente, _idOdontologo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _idPaciente = PacienteQuery;
+        var p = PacientesAsync();
+        var o = OdontologosAsync(soloActivos: false);
+        await Task.WhenAll(p, o);
+        _pacientes = p.Result;
+        _odontologos = o.Result;
+        await Cargar();
+    }
+
+    private Task Filtrar(Action cambio)
+    {
+        cambio();
+        return Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var filtros = new List<string>();
+        if (_tipo.HasValue) filtros.Add($"tipo={(int)_tipo}");
+        if (_idPaciente.HasValue) filtros.Add($"idPaciente={_idPaciente}");
+        if (_idOdontologo.HasValue) filtros.Add($"idOdontologo={_idOdontologo}");
+        _tratamientos = await CargarAsync("api/Tratamiento" + (filtros.Count > 0 ? "?" + string.Join("&", filtros) : ""), new List<TratamientoRespuesta>());
+        Cargando = false;
+    }
+
+    private async Task Eliminar(TratamientoRespuesta t)
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar tratamiento?", "Solo se puede eliminar un tratamiento sin pagos registrados.")) return;
+        var r = await Api.DeleteAsync($"api/Tratamiento/{t.Id}");
+        if (r.Exito) Notificar.Exito("Tratamiento eliminado.");
+        else Notificar.Error(r.Mensaje);
+        await Cargar();
+    }
+}

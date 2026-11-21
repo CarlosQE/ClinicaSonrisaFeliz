@@ -1,0 +1,85 @@
+@page "/mi-cuenta"
+
+<Encabezado Titulo="Mi cuenta" Subtitulo="Datos de acceso y cambio de contraseña" />
+
+@if (Cargando)
+{
+    <Cargando Filas="2" />
+}
+else
+{
+    <AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="OnInitializedAsync" />
+    <div class="row g-4">
+        @if (_usuario is not null)
+        {
+            <div class="col-lg-5">
+                <div class="tarjeta text-center">
+                    <span class="avatar-usuario grande mx-auto mb-3">@Formato.IniciasDe(_usuario.NombreCompleto)</span>
+                    <h2 class="mb-1">@_usuario.NombreCompleto</h2>
+                    <div class="text-muted mb-3">@@@_usuario.NombreUsuario</div>
+                    <span class="chip chip--primary"><span class="ms">badge</span>@Roles.Texto(_usuario.Rol)</span>
+                    <dl class="datos mt-4 text-start" style="grid-template-columns:1fr 1fr">
+                        <div><dt>Registrado</dt><dd>@Formato.Fecha(_usuario.FechaRegistro)</dd></div>
+                        <div><dt>Último acceso</dt><dd>@(_usuario.UltimoAcceso is { } u ? Formato.FechaHora(u) : "—")</dd></div>
+                    </dl>
+                </div>
+            </div>
+        }
+        <div class="col-lg-7">
+            <div class="tarjeta-borde">
+                <h2><span class="ms me-1">password</span>Cambiar contraseña</h2>
+                <AvisoError Mensaje="@ErrorFormulario" />
+                <EditForm Model="_datos" OnValidSubmit="Guardar" FormName="contrasena">
+                    <DataAnnotationsValidator />
+                    <div class="form-floating mb-3">
+                        <InputText id="actual" type="password" class="form-control" @bind-Value="_datos.ContrasenaActual" placeholder="Actual" autocomplete="current-password" />
+                        <label for="actual">Contraseña actual</label>
+                        <ValidationMessage For="() => _datos.ContrasenaActual" />
+                    </div>
+                    <div class="form-floating mb-1">
+                        <input id="nueva" type="password" class="form-control" @bind="_datos.ContrasenaNueva" @bind:event="oninput" placeholder="Nueva" autocomplete="new-password" />
+                        <label for="nueva">Nueva contraseña</label>
+                        <ValidationMessage For="() => _datos.ContrasenaNueva" />
+                    </div>
+                    <IndicadorContrasena Contrasena="@_datos.ContrasenaNueva" />
+                    <div class="form-floating mb-3 mt-3">
+                        <InputText id="confirmar" type="password" class="form-control" @bind-Value="_datos.ConfirmarContrasena" placeholder="Confirmar" autocomplete="new-password" />
+                        <label for="confirmar">Confirmar nueva contraseña</label>
+                        <ValidationMessage For="() => _datos.ConfirmarContrasena" />
+                    </div>
+                    <div class="formulario-acciones">
+                        <BotonEnviar Enviando="Enviando" Texto="Cambiar contraseña" Icono="lock_reset" />
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioRespuesta? _usuario;
+    private CambiarContrasenaDto _datos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _usuario = await CargarAsync<UsuarioRespuesta?>("api/Auth/yo", null);
+        Cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PutTextoAsync("api/Auth/contrasena", _datos);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        _datos = new CambiarContrasenaDto();
+        Notificar.Exito("Contraseña actualizada correctamente.");
+    }
+}

@@ -1,0 +1,83 @@
+@page "/citas/{Id:guid}/cancelar"
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" />
+
+@if (Cargando)
+{
+    <Cargando Filas="3" />
+}
+else if (_cita is { } c)
+{
+    <Encabezado Titulo="Cancelar cita">
+        <Migas><a href="citas">Citas</a><span class="ms">chevron_right</span><a href="citas/@c.Id">Detalle</a></Migas>
+    </Encabezado>
+
+    <ResumenCita Cita="c" />
+
+    <EditForm Model="_datos" OnValidSubmit="Guardar" class="formulario" FormName="cancelar">
+        <DataAnnotationsValidator />
+        <AvisoError Mensaje="@ErrorFormulario" />
+        <div class="formulario-seccion"><span class="ms">edit_note</span>¿Por qué se cancela?</div>
+        <div class="chips-filtro">
+            @foreach (var m in MotivosFrecuentes)
+            {
+                <button type="button" class="chip-filtro @(_datos.Motivo == m ? "activo" : "")" @onclick="() => _datos.Motivo = m">@m</button>
+            }
+        </div>
+        <div class="form-floating">
+            <InputTextArea id="motivo" class="form-control alto-110" @bind-Value="_datos.Motivo" placeholder="Motivo" />
+            <label for="motivo">Motivo de la cancelación *</label>
+            <ValidationMessage For="() => _datos.Motivo" />
+        </div>
+        <div class="aviso aviso-info mt-3"><span class="ms">info</span><div>La cita quedará como <b>Cancelada</b> y su horario se liberará para otros pacientes. Esta acción no se puede deshacer.</div></div>
+        <div class="formulario-acciones">
+            <a class="btn btn-text" href="citas/@c.Id">Volver</a>
+            <BotonEnviar Enviando="Enviando" Texto="Cancelar cita" TextoEnviando="Cancelando…" Icono="event_busy" Clase="btn-peligro" />
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private static readonly string[] MotivosFrecuentes =
+        ["El paciente no puede asistir", "Odontólogo no disponible", "El paciente reprogramará por su cuenta", "Emergencia"];
+
+    private CitaRespuesta? _cita;
+    private readonly CancelarCitaDto _datos = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var r = await Api.GetAsync<CitaRespuesta>($"api/Cita/{Id}");
+        _cita = r.Datos;
+        if (!r.Exito || _cita is null)
+        {
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "La cita no existe.";
+        }
+        else if (!_cita.EstaVigente)
+        {
+            Notificar.Error($"No se puede cancelar una cita {Formato.Texto(_cita.Estado).ToLowerInvariant()}.");
+            Nav.NavigateTo($"citas/{Id}");
+            return;
+        }
+        Cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PutTextoAsync($"api/Cita/{Id}/cancelar", _datos);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito("La cita fue cancelada y el horario quedó libre.");
+        Nav.NavigateTo($"citas/{Id}");
+    }
+}

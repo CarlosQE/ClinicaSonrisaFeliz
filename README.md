@@ -1,10 +1,18 @@
-# Clínica Dental Sonrisa Feliz — Backend
+# Clínica Dental Sonrisa Feliz
 
-API REST en **ASP.NET Core Web API (.NET 10) + Entity Framework Core + SQL Server** para administrar
-pacientes, odontólogos, especialidades, horarios, citas, tratamientos y pagos de la Clínica Dental Sonrisa Feliz.
-Es solo backend: se prueba con **Swagger**.
+Sistema web para administrar pacientes, odontólogos, especialidades, horarios, citas, tratamientos y pagos
+de la Clínica Dental Sonrisa Feliz. Tiene tres proyectos (mismo esquema que el ejemplo de clase *Actividad1*):
 
-Los 5 módulos están implementados: **Pacientes**, **Odontólogos (Especialidades y Horarios)**, **Citas**, **Tratamientos** y **Pagos**.
+| Proyecto | Qué es | Puerto (perfil `http`) |
+|---|---|---|
+| `src/ClinicaDental.Web` | **Backend**: API REST en ASP.NET Core Web API (.NET 10) + Entity Framework Core + **SQL Server** | `http://localhost:5087` (Swagger en `/swagger`) |
+| `src/ClinicaDental.ClienteBlazor` | **Frontend**: Blazor Web App (componentes `.razor`, interactivo en servidor) que consume la API con `HttpClient` y token JWT | `http://localhost:5180` |
+| `src/ClinicaDental.Contrato` | Biblioteca compartida: DTOs que se envían a la API y modelos de lo que la API devuelve | — |
+
+> El frontend **no accede a la base de datos**: todo pasa por la API. Por eso la API (y su SQL Server) deben estar en ejecución para usar el cliente.
+
+Los 5 módulos están implementados: **Pacientes**, **Odontólogos (Especialidades y Horarios)**, **Citas**, **Tratamientos** y **Pagos**,
+además de **inicio de sesión con JWT** y gestión de usuarios por rol.
 
 ---
 
@@ -36,10 +44,100 @@ Los 5 módulos están implementados: **Pacientes**, **Odontólogos (Especialidad
 
 > Cada vez que entres cambios de base de datos (carpeta `Migrations/`), vuelve a ejecutar `Update-Database`.
 
+4. Ejecuta el **frontend** (con la API ya corriendo), en otra terminal:
+
+   ```bash
+   dotnet run --project src/ClinicaDental.ClienteBlazor
+   ```
+
+   y abre `http://localhost:5180`. Ingresa con el usuario inicial **`admin`** / **`Admin.Sonrisa2026`** y cámbiale la contraseña en *Mi cuenta*.
+
+**En Visual Studio (recomendado):** junto a la solución está `ClinicaDental.slnLaunch`. En la barra de herramientas elige el perfil **"API + Cliente web"** y pulsa ▶: arrancan los dos proyectos a la vez. (Alternativa: clic derecho en la solución → *Configurar proyectos de inicio* → *Varios proyectos de inicio* → `ClinicaDental.Web` y `ClinicaDental.ClienteBlazor` en *Iniciar*.)
+
+Si cambias el puerto de la API, actualiza `ApiSettings:BaseUrl` en `src/ClinicaDental.ClienteBlazor/appsettings.json`.
+
+## Frontend (ClinicaDental.ClienteBlazor) — Blazor
+
+**Blazor Web App** con componentes `.razor` en modo **Interactive Server** (sin prerenderizado). Igual que el ejemplo de clase,
+el cliente llama a la API con un `HttpClient` con nombre `"Api"` (configurado en `Program.cs`) y usa los DTOs del proyecto `Contrato`.
+
+**Estilo visual:** inspirado en Material Design 3 (apps de Google): barra superior con buscador, menú lateral con
+botón "Nueva cita", tarjetas, chips de estado, campos con etiqueta flotante, avisos tipo *snackbar* y diálogos de confirmación.
+Paleta turquesa clínica (confianza e higiene) con azul sereno y menta. Incluye logotipo propio (diente sonriente),
+**pantalla de carga** mientras arranca Blazor, **páginas de carga** (esqueletos animados) mientras llegan los datos,
+**barra de progreso** durante cada llamada a la API, diseño adaptable a celular y comprobante de pago **imprimible**.
+Íconos: *Material Symbols* y fuente *Roboto* (Google Fonts, requieren internet).
+
+| Menú | Ruta | Endpoints que usa |
+|---|---|---|
+| Inicio de sesión | `/login` | `POST api/Auth/login` |
+| Inicio | `/` (panel: citas de hoy, próximas citas, KPIs, saldos) | varios |
+| Pacientes | `/pacientes`, `/pacientes/nuevo`, `/pacientes/{id}` (historial), `/pacientes/{id}/editar` | `api/Paciente` |
+| Odontólogos | `/odontologos`, `/odontologos/nuevo`, `/odontologos/{id}` (horario semanal), `/odontologos/{id}/editar` | `api/Odontologo`, `api/HorarioOdontologo` |
+| Especialidades | `/especialidades` | `api/Especialidad` |
+| Citas | `/citas/agenda`, `/citas`, `/citas/nueva` (con horarios libres), `/citas/{id}`, `/citas/{id}/reprogramar`, `/citas/{id}/cancelar` | `api/Cita` |
+| Tratamientos | `/tratamientos`, `/tratamientos/nuevo` (también desde una cita), `/tratamientos/{id}` (observaciones y pagos) | `api/Tratamiento` |
+| Pagos | `/pagos`, `/pagos/nuevo`, `/pagos/deudas`, `/pagos/{id}/comprobante` | `api/Pago` |
+| Mi cuenta | `/mi-cuenta` (cambiar contraseña) | `api/Auth/yo`, `api/Auth/contrasena` |
+| Usuarios (solo Administrador) | `/usuarios` | `api/Auth/usuarios` |
+
+Estructura del cliente:
+
+```
+src/ClinicaDental.ClienteBlazor/
+├─ Program.cs                    HttpClient "Api", autenticación, servicios, cultura es-BO, cabeceras de seguridad
+├─ appsettings.json              ApiSettings:BaseUrl → URL de la API
+├─ Servicios/
+│  ├─ ProveedorAutenticacion.cs  Sesión del usuario (token JWT) para <AuthorizeView>; se guarda cifrada en ProtectedSessionStorage
+│  ├─ ClienteApi.cs              GET/POST/PUT/DELETE con el token; 401 → cierra sesión; convierte errores en mensajes
+│  ├─ Notificaciones.cs          Snackbar y diálogo de confirmación
+│  ├─ Formato.cs                 Textos, íconos y colores (estados, tipos, dinero, fechas)
+│  └─ Disponibilidad.cs          Horarios libres para sugerir al agendar
+├─ Components/
+│  ├─ App.razor, Routes.razor    Documento HTML, pantalla de carga, enrutador
+│  ├─ PaginaBase.cs              Clase base de todas las páginas (Api, Nav, Notificar, Dialogo, Cargando, errores)
+│  ├─ Layout/                    MainLayout (exige sesión: barra, menú, cuenta) y LayoutAcceso (login)
+│  ├─ Compartido/                Logo, Avatar, Encabezado, Cargando, Vacio, AvisoError, BotonEnviar, Snackbar,
+│  │                             DialogoConfirmacion, ChipEstadoCita, ResumenCita, HorariosLibres, IndicadorContrasena…
+│  └─ Pages/                     Login, Inicio, MiCuenta, Usuarios, Especialidades, Pacientes/, Odontologos/, Citas/, Tratamientos/, Pagos/
+└─ wwwroot/app.css               Tema (paleta en variables CSS) · wwwroot/js/sonrisa.js (pantalla de carga, imprimir)
+```
+
+## Seguridad (inicio de sesión)
+
+| Medida | Dónde |
+|---|---|
+| **Todos** los endpoints exigen token JWT, salvo `POST api/Auth/login` | API · `Program.cs` → `MapControllers().RequireAuthorization()` |
+| Token **JWT firmado (HMAC-SHA256)** con emisor, audiencia y **expiración de 8 h** | API · `AuthServicio.GenerarToken`, sección `Jwt` de `appsettings.json` |
+| Contraseñas con **PBKDF2-SHA256 + sal aleatoria (100 000 iteraciones)**; nunca en texto plano; comparación en tiempo constante | API · `Services/Seguridad/HasherContrasena.cs` |
+| Política de **contraseña segura**: ≥ 8 caracteres con mayúscula, minúscula, número y símbolo | API (`ContrasenaSegura`) y formulario (`[ContrasenaSegura]` + indicador en vivo) |
+| **Bloqueo** de la cuenta 15 min tras **5 intentos fallidos** | API · `AuthServicio.IniciarSesion` (HTTP 423) |
+| **Límite de 10 intentos de login por minuto** por IP (fuerza bruta) | API · `AddRateLimiter` política `login` (HTTP 429) |
+| Mensaje genérico "Usuario o contraseña incorrectos" (no revela si el usuario existe) | API |
+| **Roles**: `Administrador` (gestiona usuarios), `Recepcionista`, `Odontologo` | API `[Authorize(Roles=...)]` · cliente `<AuthorizeView Roles=...>` |
+| No se puede desactivar la propia cuenta ni dejar el sistema sin administradores | API · `AuthController` |
+| En el cliente el token **no se expone a JavaScript**: vive en el servidor y se respalda cifrado (Data Protection) en `ProtectedSessionStorage`; se borra al cerrar la pestaña o la sesión | Cliente · `ProveedorAutenticacion` |
+| Si el token expira o es inválido (401), el cliente cierra la sesión y vuelve al login | Cliente · `ClienteApi` |
+| Toda página (salvo `/login`) exige sesión; el parámetro `?volver=` solo acepta rutas internas (evita redirecciones abiertas) | Cliente · `MainLayout`, `Login.razor` |
+| Cabeceras `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` | Cliente · `Program.cs` |
+
+> **Usuario inicial:** `admin` / `Admin.Sonrisa2026` (rol Administrador, creado por la migración `Usuarios`). Cámbiale la contraseña después del primer ingreso.
+> **Clave JWT:** `Jwt:Clave` en `appsettings.json` sirve solo para desarrollo/clase. En producción debe venir de una variable de entorno (`Jwt__Clave`) o de *User Secrets*.
+> En **Swagger** pulsa *Authorize* y pega el token que devuelve `POST /api/Auth/login` para probar los demás endpoints.
 ## Módulos y endpoints
 
 Rutas base por controlador: `api/[controller]` (p. ej. `api/Paciente`, `api/Odontologo`, `api/Cita`). Endpoints tomados de los controladores.
 
+### Autenticación y usuarios (`api/Auth`)
+
+| Verbo | Ruta | Acceso | Name |
+|---|---|---|---|
+| POST | `/api/Auth/login` | Público | `IniciarSesion` |
+| GET | `/api/Auth/yo` | Con sesión | `UsuarioActual` |
+| PUT | `/api/Auth/contrasena` | Con sesión | `CambiarContrasena` |
+| GET | `/api/Auth/usuarios` | Administrador | `ListarUsuarios` |
+| POST | `/api/Auth/usuarios` | Administrador | `RegistrarUsuario` |
+| PUT | `/api/Auth/usuarios/{id}/estado` | Administrador | `CambiarEstadoUsuario` |
 ### Pacientes (`api/Paciente`)
 
 | Verbo | Ruta | Name |
@@ -125,6 +223,7 @@ El seed se define en `Data/DatosIniciales.cs` y `Factories/*.cs` (aplicado por m
 | Horarios | Lunes a viernes, 08:00–12:00 y 14:00–18:00, para los 4 odontólogos (`4000…0001`–`…0040`) |
 | Tratamientos (2) | `50000000-0000-0000-0000-000000000001` (limpieza) y `…0002` (endodoncia) |
 | Pago (1) | `60000000-0000-0000-0000-000000000001`, adelanto de 300 Bs al tratamiento `…0002` |
+| Usuario (1) | `70000000-0000-0000-0000-000000000001`: `admin` / `Admin.Sonrisa2026` (Administrador) |
 
 No se siembran citas de ejemplo.
 
@@ -132,6 +231,9 @@ No se siembran citas de ejemplo.
 
 ```
 ClinicaDental.sln
+ClinicaDental.slnLaunch  Perfil de Visual Studio para arrancar API + cliente juntos
+├─ src/ClinicaDental.ClienteBlazor/   Frontend (Blazor Web App), ver sección "Frontend"
+├─ src/ClinicaDental.Contrato/        DTOs/ (lo que se envía a la API), Respuestas/ (lo que devuelve), Enums.cs
 ├─ src/ClinicaDental.Web/
 │  ├─ Controllers/      Controladores de la API (Cita, Especialidad, HorarioOdontologo, Odontologo, Paciente, Pago, Tratamiento)
 │  ├─ DTOs/             DTOs por entidad/módulo (Cita, Especialidad, HorarioOdontologo, Odontologo, Paciente, Pago, Tratamiento)
@@ -153,6 +255,9 @@ ClinicaDental.sln
 ## Arquitectura
 
 ```
+Navegador ──► ClinicaDental.ClienteBlazor (Blazor Interactive Server, puerto 5180)
+                 │  HttpClient "Api" + token JWT (Authorization: Bearer) + DTOs de ClinicaDental.Contrato
+                 ▼
 Cliente HTTP / Swagger ──► Controller (Controllers/)
                               │  valida ModelState y reglas expuestas por el servicio
                               │  responde 200/201/204/400/404/500

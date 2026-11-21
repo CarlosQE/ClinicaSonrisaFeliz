@@ -1,0 +1,85 @@
+@page "/pagos/deudas"
+
+<Encabezado Titulo="Deudas pendientes" Subtitulo="Tratamientos con saldo por cobrar">
+    <Acciones><a class="btn btn-filled" href="pagos/nuevo"><span class="ms">add_card</span>Registrar pago</a></Acciones>
+</Encabezado>
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="5" />
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-aviso"><span class="ms">account_balance_wallet</span></span><span><span class="kpi-valor d-block">@Formato.Dinero(_deudas.Sum(d => d.Saldo))</span><span class="kpi-etiqueta">Saldo total por cobrar</span></span></div></div>
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-terciario"><span class="ms">groups</span></span><span><span class="kpi-valor d-block">@_deudas.Select(d => d.IdPaciente).Distinct().Count()</span><span class="kpi-etiqueta">Pacientes con deuda</span></span></div></div>
+        <div class="col-sm-4"><div class="kpi"><span class="kpi-icono tono-primario"><span class="ms">dentistry</span></span><span><span class="kpi-valor d-block">@_deudas.Count</span><span class="kpi-etiqueta">Tratamientos pendientes</span></span></div></div>
+    </div>
+
+    <div class="mb-3 filtros-ancho-sm">
+        <select class="form-select" @onchange="CambiarPaciente" aria-label="Paciente">
+            <option value="">Todos los pacientes</option>
+            @foreach (var p in _pacientes)
+            {
+                <option value="@p.Id" selected="@(p.Id == _idPaciente)">@p.Apellidos, @p.Nombres</option>
+            }
+        </select>
+    </div>
+
+    @if (!SinConexion && _deudas.Count == 0)
+    {
+        <Vacio Icono="celebration" Titulo="¡Todo al día!" Texto="No hay saldos pendientes de cobro." />
+    }
+    else if (_deudas.Count > 0)
+    {
+        <div class="tabla-contenedor">
+            <table class="tabla">
+                <thead><tr><th>Paciente</th><th>Tratamiento</th><th>Fecha</th><th class="num">Costo</th><th class="num">Pagado</th><th class="col-avance">Avance</th><th class="num">Saldo</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var d in _deudas)
+                    {
+                        var avance = d.Costo == 0 ? 100 : (int)Math.Round(d.TotalPagado / d.Costo * 100);
+                        <tr>
+                            <td><a href="pacientes/@d.IdPaciente">@d.PacienteNombre</a><div class="small text-muted">CI @d.PacienteCI</div></td>
+                            <td><a href="tratamientos/@d.IdTratamiento">@Formato.TextoTipo(d.Tipo)</a></td>
+                            <td class="text-nowrap">@Formato.Fecha(d.Fecha)</td>
+                            <td class="num">@Formato.Dinero(d.Costo)</td>
+                            <td class="num">@Formato.Dinero(d.TotalPagado)</td>
+                            <td><div class="progreso-pago" title="@avance% pagado"><span style="width:@avance%"></span></div></td>
+                            <td class="num fw-medium texto-aviso">@Formato.Dinero(d.Saldo)</td>
+                            <td class="acciones-fila"><a class="btn btn-tonal btn-sm" href="pagos/nuevo?tratamiento=@d.IdTratamiento"><span class="ms">add_card</span>Cobrar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private List<DeudaRespuesta> _deudas = new();
+    private List<PacienteRespuesta> _pacientes = new();
+    private Guid? _idPaciente;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pacientes = await PacientesAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        _deudas = await CargarAsync("api/Pago/deudas" + (_idPaciente.HasValue ? $"?idPaciente={_idPaciente}" : ""), new List<DeudaRespuesta>());
+        Cargando = false;
+    }
+
+    private Task CambiarPaciente(ChangeEventArgs e)
+    {
+        _idPaciente = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        return Cargar();
+    }
+}

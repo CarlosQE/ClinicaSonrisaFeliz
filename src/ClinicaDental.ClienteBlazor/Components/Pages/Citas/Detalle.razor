@@ -1,0 +1,85 @@
+@page "/citas/{Id:guid}"
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else if (_cita is { } c)
+{
+    <Encabezado Titulo="@($"Cita de {c.Paciente?.Nombres}")" MigaActual="Detalle">
+        <Migas><a href="citas">Citas</a></Migas>
+        <Acciones>
+            <a class="btn btn-outlined" href="citas/agenda?fecha=@c.FechaHora.ToString("yyyy-MM-dd")"><span class="ms">today</span>Ver en agenda</a>
+            @if (c.EstaVigente)
+            {
+                <a class="btn btn-tonal" href="citas/@c.Id/reprogramar"><span class="ms">update</span>Reprogramar</a>
+                <a class="btn btn-texto-peligro" href="citas/@c.Id/cancelar"><span class="ms">event_busy</span>Cancelar</a>
+            }
+            @if (c.Estado != EstadoCita.Cancelada)
+            {
+                <a class="btn btn-filled" href="tratamientos/nuevo?cita=@c.Id"><span class="ms">dentistry</span>Registrar tratamiento</a>
+            }
+        </Acciones>
+    </Encabezado>
+
+    <ResumenCita Cita="c" />
+
+    <div class="tarjeta-borde">
+        <div class="tarjeta-titulo"><h2>Tratamientos de esta cita</h2></div>
+        @if (_tratamientos.Count == 0)
+        {
+            <p class="text-muted mb-0">
+                Aún no se registraron tratamientos.
+                @if (c.Estado != EstadoCita.Cancelada)
+                {
+                    <span>Al registrar uno, la cita queda como <b>Atendida</b>.</span>
+                }
+            </p>
+        }
+        else
+        {
+            <ul class="lista">
+                @foreach (var t in _tratamientos)
+                {
+                    <li>
+                        <a class="lista-item" href="tratamientos/@t.Id">
+                            <span class="kpi-icono tono-terciario icono-40"><span class="ms">@Formato.Icono(t.Tipo)</span></span>
+                            <span class="lista-texto"><span class="lista-titulo d-block">@Formato.Texto(t.Tipo)</span><span class="lista-sub d-block">@(t.Observaciones ?? "Sin observaciones")</span></span>
+                            <span class="fw-medium">@Formato.Dinero(t.Costo)</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CitaRespuesta? _cita;
+    private List<TratamientoRespuesta> _tratamientos = new();
+
+    protected override Task OnParametersSetAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = true;
+        var r = await Api.GetAsync<CitaRespuesta>($"api/Cita/{Id}");
+        _cita = r.Datos;
+        if (r.Exito && _cita is not null)
+        {
+            var todos = await CargarAsync($"api/Tratamiento?idPaciente={_cita.IdPaciente}", new List<TratamientoRespuesta>());
+            _tratamientos = todos.Where(t => t.IdCita == Id).ToList();
+        }
+        else
+        {
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "La cita no existe.";
+        }
+        Cargando = false;
+    }
+}

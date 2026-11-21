@@ -1,0 +1,162 @@
+@page "/tratamientos/{Id:guid}"
+
+<AvisoError Mensaje="@MensajeError" SinConexion="SinConexion" AlReintentar="Cargar" />
+
+@if (Cargando)
+{
+    <Cargando Filas="4" />
+}
+else if (_tratamiento is { } t)
+{
+    <Encabezado Titulo="@Formato.Texto(t.Tipo)" Subtitulo="@($"{t.Paciente?.NombreCompleto} · {Formato.Fecha(t.Fecha)}")" MigaActual="Detalle">
+        <Migas><a href="tratamientos">Tratamientos</a></Migas>
+        <Acciones>
+            @if (_saldo > 0)
+            {
+                <a class="btn btn-filled" href="pagos/nuevo?tratamiento=@t.Id"><span class="ms">add_card</span>Registrar pago</a>
+            }
+            <button type="button" class="btn btn-texto-peligro" @onclick="Eliminar"><span class="ms">delete</span>Eliminar</button>
+        </Acciones>
+    </Encabezado>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="tarjeta mb-3">
+                <dl class="datos">
+                    <div><dt>Paciente</dt><dd><a href="pacientes/@t.IdPaciente">@t.Paciente?.NombreCompleto</a></dd></div>
+                    <div><dt>CI</dt><dd>@t.Paciente?.CI</dd></div>
+                    <div><dt>Odontólogo</dt><dd>@t.Odontologo?.NombreCompleto</dd></div>
+                    <div><dt>Fecha</dt><dd>@Formato.Fecha(t.Fecha)</dd></div>
+                    <div><dt>Cita</dt><dd>
+                        @if (t.IdCita is Guid idCita)
+                        {
+                            <a href="citas/@idCita">@(t.Cita is null ? "Ver cita" : Formato.FechaHora(t.Cita.FechaHora))</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Sin cita asociada</span>
+                        }
+                    </dd></div>
+                    <div><dt>Costo</dt><dd>@Formato.Dinero(t.Costo)</dd></div>
+                </dl>
+            </div>
+
+            <div class="tarjeta-borde">
+                <h2><span class="ms me-1">edit_note</span>Registro de observaciones</h2>
+                <AvisoError Mensaje="@ErrorFormulario" />
+                <EditForm Model="_observaciones" OnValidSubmit="GuardarObservaciones" FormName="observaciones">
+                    <DataAnnotationsValidator />
+                    <div class="form-floating">
+                        <InputTextArea id="observaciones" class="form-control alto-150" @bind-Value="_observaciones.Observaciones" placeholder="Observaciones" />
+                        <label for="observaciones">Evolución, indicaciones, piezas tratadas…</label>
+                        <ValidationMessage For="() => _observaciones.Observaciones" />
+                    </div>
+                    <div class="d-flex justify-content-end mt-3">
+                        <BotonEnviar Enviando="Enviando" Texto="Guardar observaciones" Clase="btn-tonal" />
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="tarjeta-borde">
+                <h2>Estado de pago</h2>
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <div><div class="kpi-valor">@Formato.Dinero(_saldo)</div><div class="kpi-etiqueta">Saldo pendiente</div></div>
+                    @if (_saldo <= 0)
+                    {
+                        <span class="chip chip--success"><span class="ms">verified</span>Pagado</span>
+                    }
+                    else
+                    {
+                        <span class="chip chip--warn">@Porcentaje% pagado</span>
+                    }
+                </div>
+                <div class="progreso-pago mb-3"><span style="width:@(Math.Min(100, Porcentaje))%"></span></div>
+
+                @if (_pagos.Count == 0)
+                {
+                    <p class="text-muted mb-0">Aún no hay pagos para este tratamiento.</p>
+                }
+                else
+                {
+                    <ul class="lista">
+                        @foreach (var p in _pagos)
+                        {
+                            <li>
+                                <a class="lista-item px-0" href="pagos/@p.Id/comprobante">
+                                    <span class="kpi-icono tono-exito icono-40"><span class="ms">@Formato.Icono(p.Metodo)</span></span>
+                                    <span class="lista-texto"><span class="lista-titulo d-block">@p.NumeroComprobante</span><span class="lista-sub d-block">@Formato.FechaHora(p.FechaPago) · @Formato.Texto(p.Metodo)</span></span>
+                                    <span class="fw-medium">@Formato.Dinero(p.Monto)</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private TratamientoRespuesta? _tratamiento;
+    private List<PagoRespuesta> _pagos = new();
+    private decimal _saldo;
+    private ActualizarObservacionesDto _observaciones = new();
+
+    private int Porcentaje => _tratamiento is null || _tratamiento.Costo == 0 ? 100 : (int)Math.Round(_pagos.Sum(p => p.Monto) / _tratamiento.Costo * 100);
+
+    protected override Task OnParametersSetAsync() => Cargar();
+
+    private async Task Cargar()
+    {
+        LimpiarErrores();
+        Cargando = _tratamiento is null;
+        var r = await Api.GetAsync<TratamientoRespuesta>($"api/Tratamiento/{Id}");
+        _tratamiento = r.Datos;
+        if (r.Exito && _tratamiento is not null)
+        {
+            _observaciones = new ActualizarObservacionesDto { Observaciones = _tratamiento.Observaciones ?? string.Empty };
+            var pagos = CargarAsync($"api/Pago?idPaciente={_tratamiento.IdPaciente}", new List<PagoRespuesta>());
+            var saldo = CargarAsync($"api/Pago/tratamiento/{Id}/saldo", new SaldoRespuesta { SaldoPendiente = _tratamiento.Costo });
+            await Task.WhenAll(pagos, saldo);
+            _pagos = pagos.Result.Where(p => p.IdTratamiento == Id).OrderByDescending(p => p.FechaPago).ToList();
+            _saldo = saldo.Result.SaldoPendiente;
+        }
+        else
+        {
+            RegistrarError(r);
+            if (r.NoEncontrado) MensajeError = "El tratamiento no existe o fue eliminado.";
+        }
+        Cargando = false;
+    }
+
+    private async Task GuardarObservaciones()
+    {
+        ErrorFormulario = null;
+        Enviando = true;
+        var r = await Api.PutAsync<TratamientoRespuesta>($"api/Tratamiento/{Id}/observaciones", _observaciones);
+        Enviando = false;
+        if (!r.Exito)
+        {
+            ErrorFormulario = r.Mensaje;
+            return;
+        }
+        Notificar.Exito("Observaciones guardadas.");
+    }
+
+    private async Task Eliminar()
+    {
+        if (!await Dialogo.ConfirmarAsync("¿Eliminar tratamiento?", "Solo se puede eliminar un tratamiento sin pagos registrados.")) return;
+        var r = await Api.DeleteAsync($"api/Tratamiento/{Id}");
+        if (!r.Exito)
+        {
+            Notificar.Error(r.Mensaje);
+            return;
+        }
+        Notificar.Exito("Tratamiento eliminado.");
+        Nav.NavigateTo("tratamientos");
+    }
+}

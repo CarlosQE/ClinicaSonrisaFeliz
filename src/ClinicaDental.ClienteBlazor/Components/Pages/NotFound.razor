@@ -1,0 +1,14 @@
+﻿@page "/not-found"
+
+<PageTitle>Página no encontrada · Sonrisa Feliz</PageTitle>
+
+<div class="error-pagina">
+    <div class="codigo">404</div>
+    <h1 class="h3 mt-3">No encontramos esa página</h1>
+    <p class="text-muted mx-auto texto-angosto">La dirección no existe o el registro fue eliminado.</p>
+    <a class="btn btn-filled mt-3" href=""><span class="ms">home</span>Ir al inicio</a>
+</div>
+
+@code {
+    protected override void OnInitialized() => Cargando = false;
+}

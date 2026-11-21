@@ -1,0 +1,8 @@
+@* Avatar circular con iniciales y color estable. Uso: <Avatar Nombres="..." Apellidos="..." Clase="avatar-lg" /> *@
+<span class="avatar @Clase" style="background:@Formato.ColorAvatar(Nombres + Apellidos)" aria-hidden="true">@Formato.Iniciales(Nombres, Apellidos)</span>
+
+@code {
+    [Parameter] public string Nombres { get; set; } = string.Empty;
+    [Parameter] public string Apellidos { get; set; } = string.Empty;
+    [Parameter] public string? Clase { get; set; }
+}

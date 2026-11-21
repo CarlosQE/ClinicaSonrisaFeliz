@@ -1,0 +1,18 @@
+@* Logotipo de Sonrisa Feliz (diente sonriente con destello). Uso: <Logo Tamano="40" /> *@
+<svg class="logo" width="@Tamano" height="@Tamano" viewBox="0 0 48 48" aria-hidden="true">
+    <defs>
+        <linearGradient id="@_id" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#14B8B0" />
+            <stop offset="1" stop-color="#00696D" />
+        </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#@_id)" />
+    <path d="M24 13.2c-2.1-1.5-4.1-2.2-6.3-2.2-4.5 0-7.7 3.5-7.7 8.4 0 3 .9 5.5 1.9 8.2 1 2.6 1.6 6 2.2 9.1.5 2.4 1.4 3.6 2.8 3.6 1.8 0 2.4-1.9 2.9-4.5.6-2.8 1.3-5.5 4.2-5.5s3.6 2.7 4.2 5.5c.5 2.6 1.1 4.5 2.9 4.5 1.4 0 2.3-1.2 2.8-3.6.6-3.1 1.2-6.5 2.2-9.1 1-2.7 1.9-5.2 1.9-8.2 0-4.9-3.2-8.4-7.7-8.4-2.2 0-4.2.7-6.3 2.2z" fill="#FFFFFF" />
+    <path d="M18.6 21.4c1.5 1.9 3.3 2.9 5.4 2.9s3.9-1 5.4-2.9" fill="none" stroke="#00696D" stroke-width="2.2" stroke-linecap="round" />
+    <path d="M36.5 7.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="#FFE08A" />
+</svg>
+
+@code {
+    [Parameter] public int Tamano { get; set; } = 40;
+    private readonly string _id = "sf-" + Guid.NewGuid().ToString("N")[..8];
+}

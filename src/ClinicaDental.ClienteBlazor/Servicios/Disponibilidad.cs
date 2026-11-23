@@ -8,20 +8,21 @@ namespace ClinicaDental.ClienteBlazor.Servicios
     /// </summary>
     public static class Disponibilidad
     {
-        public static List<DateTime> HorariosLibres(DateOnly fecha, int duracionMinutos, DateTime ahora,
+        public static List<TimeOnly> HorariosLibres(DateOnly fecha, int duracionMinutos, DateTime ahora,
             IEnumerable<HorarioRespuesta> horarios, IEnumerable<CitaRespuesta> citasDelDia, Guid? excluirCita = null)
         {
             var ocupadas = citasDelDia.Where(c => c.Estado != Contrato.Enums.EstadoCita.Cancelada && c.Id != excluirCita).ToList();
-            var libres = new List<DateTime>();
+            var libres = new List<TimeOnly>();
+            var horaActual = DateOnly.FromDateTime(ahora) == fecha ? TimeOnly.FromDateTime(ahora) : TimeOnly.MinValue;
+            var esHoy = DateOnly.FromDateTime(ahora) == fecha;
 
             foreach (var franja in horarios.Where(h => h.DiaSemana == fecha.DayOfWeek).OrderBy(h => h.HoraInicio))
             {
-                var limite = fecha.ToDateTime(franja.HoraFin);
-                for (var t = fecha.ToDateTime(franja.HoraInicio); t.AddMinutes(duracionMinutos) <= limite; t = t.AddMinutes(30))
+                for (var t = franja.HoraInicio; t.AddMinutes(duracionMinutos) <= franja.HoraFin; t = t.AddMinutes(30))
                 {
                     var fin = t.AddMinutes(duracionMinutos);
-                    if (t <= ahora) continue;
-                    if (ocupadas.Any(c => t < c.FechaHoraFin && c.FechaHora < fin)) continue;
+                    if (esHoy && t <= horaActual) continue;
+                    if (ocupadas.Any(c => t < c.HoraFin && c.Hora < fin)) continue;
                     libres.Add(t);
                 }
             }

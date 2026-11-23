@@ -123,18 +123,20 @@ namespace ClinicaDental.Web.Services
             }
 
             var ahora = Ahora;
+            var hoy = DateOnly.FromDateTime(ahora);
+            var horaActual = TimeOnly.FromDateTime(ahora);
 
             var citasFuturas = _context.citas
                 .AsNoTracking()
                 .Where(c => c.IdOdontologo == horario.IdOdontologo &&
                             c.Estado != EstadoCita.Cancelada &&
-                            c.FechaHora > ahora)
+                            (c.Fecha > hoy || (c.Fecha == hoy && c.Hora > horaActual)))
                 .ToList();
 
             return citasFuturas.Any(c =>
-                c.FechaHora.DayOfWeek == horario.DiaSemana &&
-                TimeOnly.FromDateTime(c.FechaHora) < horario.HoraFin &&
-                horario.HoraInicio < TimeOnly.FromDateTime(c.FechaHoraFin));
+                c.Fecha.DayOfWeek == horario.DiaSemana &&
+                c.Hora < horario.HoraFin &&
+                horario.HoraInicio < c.HoraFin);
         }
     }
 }

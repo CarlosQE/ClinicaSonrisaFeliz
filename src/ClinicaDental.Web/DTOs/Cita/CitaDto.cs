@@ -10,8 +10,11 @@ namespace ClinicaDental.Web.DTOs.Cita
         [Required(ErrorMessage = "El odontólogo es requerido")]
         public Guid IdOdontologo { get; set; }
 
-        [Required(ErrorMessage = "La fecha y hora son requeridas")]
-        public DateTime FechaHora { get; set; }
+        [Required(ErrorMessage = "La fecha es requerida")]
+        public DateOnly? Fecha { get; set; }
+
+        [Required(ErrorMessage = "La hora es requerida")]
+        public TimeOnly? Hora { get; set; }
 
         public int DuracionMinutos { get; set; } = 30;
 

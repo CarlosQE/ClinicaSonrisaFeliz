@@ -11,7 +11,7 @@ else if (_cita is { } c)
     <Encabezado Titulo="@($"Cita de {c.Paciente?.Nombres}")" MigaActual="Detalle">
         <Migas><a href="citas">Citas</a></Migas>
         <Acciones>
-            <a class="btn btn-outlined" href="citas/agenda?fecha=@c.FechaHora.ToString("yyyy-MM-dd")"><span class="ms">today</span>Ver en agenda</a>
+            <a class="btn btn-outlined" href="citas/agenda?fecha=@c.Fecha.ToString("yyyy-MM-dd")"><span class="ms">today</span>Ver en agenda</a>
             @if (c.EstaVigente)
             {
                 <a class="btn btn-tonal" href="citas/@c.Id/reprogramar"><span class="ms">update</span>Reprogramar</a>

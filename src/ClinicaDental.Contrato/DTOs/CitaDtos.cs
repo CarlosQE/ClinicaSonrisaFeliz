@@ -13,9 +13,13 @@ namespace ClinicaDental.Contrato.DTOs
         [Display(Name = "Odontólogo")]
         public Guid? IdOdontologo { get; set; }
 
-        [Required(ErrorMessage = "La fecha y hora son requeridas")]
-        [Display(Name = "Fecha y hora")]
-        public DateTime? FechaHora { get; set; }
+        [Required(ErrorMessage = "La fecha es requerida")]
+        [Display(Name = "Fecha")]
+        public DateOnly? Fecha { get; set; }
+
+        [Required(ErrorMessage = "La hora es requerida")]
+        [Display(Name = "Hora")]
+        public TimeOnly? Hora { get; set; }
 
         [Range(15, 240, ErrorMessage = "La duración debe estar entre 15 y 240 minutos")]
         [Display(Name = "Duración (minutos)")]
@@ -30,9 +34,13 @@ namespace ClinicaDental.Contrato.DTOs
     /// <summary>Cuerpo de PUT /api/Cita/{id}/reprogramar.</summary>
     public class ReprogramarCitaDto
     {
-        [Required(ErrorMessage = "La nueva fecha y hora son requeridas")]
-        [Display(Name = "Nueva fecha y hora")]
-        public DateTime? NuevaFechaHora { get; set; }
+        [Required(ErrorMessage = "La nueva fecha es requerida")]
+        [Display(Name = "Nueva fecha")]
+        public DateOnly? NuevaFecha { get; set; }
+
+        [Required(ErrorMessage = "La nueva hora es requerida")]
+        [Display(Name = "Nueva hora")]
+        public TimeOnly? NuevaHora { get; set; }
 
         [Display(Name = "Odontólogo")]
         public Guid? IdNuevoOdontologo { get; set; }

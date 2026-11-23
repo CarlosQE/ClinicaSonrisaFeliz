@@ -33,10 +33,10 @@
     [Parameter] public DateOnly? Fecha { get; set; }
     [Parameter] public int Duracion { get; set; } = 30;
     [Parameter] public Guid? Excluir { get; set; }
-    [Parameter] public DateTime? Seleccionado { get; set; }
-    [Parameter] public EventCallback<DateTime> AlElegir { get; set; }
+    [Parameter] public TimeOnly? Seleccionado { get; set; }
+    [Parameter] public EventCallback<TimeOnly> AlElegir { get; set; }
 
-    private List<DateTime> _libres = new();
+    private List<TimeOnly> _libres = new();
     private bool _cargando;
     private string? _ultimaClave;
 

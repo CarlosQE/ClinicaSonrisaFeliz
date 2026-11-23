@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ClinicaDental.Web.Models
 {
-    [Index(nameof(IdOdontologo), nameof(FechaHora))]
-    [Index(nameof(IdPaciente), nameof(FechaHora))]
+    [Index(nameof(IdOdontologo), nameof(Fecha), nameof(Hora))]
+    [Index(nameof(IdPaciente), nameof(Fecha), nameof(Hora))]
     public class Cita
     {
         [Key]
@@ -16,7 +16,8 @@ namespace ClinicaDental.Web.Models
         public Guid IdOdontologo { get; set; }
         [ForeignKey(nameof(IdOdontologo))]
         public virtual Odontologo? Odontologo { get; set; }
-        public DateTime FechaHora { get; set; }
+        public DateOnly Fecha { get; set; }
+        public TimeOnly Hora { get; set; }
         public int DuracionMinutos { get; set; } = 30;
         [Required(ErrorMessage = "El motivo es obligatorio.")]
         [MaxLength(250)]
@@ -26,7 +27,7 @@ namespace ClinicaDental.Web.Models
         public string? MotivoCancelacion { get; set; }
         public DateTime FechaRegistro { get; set; }
 
-        public DateTime FechaHoraFin => FechaHora.AddMinutes(DuracionMinutos);
+        public TimeOnly HoraFin => Hora.AddMinutes(DuracionMinutos);
         public bool OcupaHorario => Estado != EstadoCita.Cancelada;
         public bool EstaVigente => Estado is EstadoCita.Programada or EstadoCita.Reprogramada;
     }

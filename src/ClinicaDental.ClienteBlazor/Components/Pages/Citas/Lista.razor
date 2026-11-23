@@ -48,8 +48,8 @@ else if (!SinConexion)
                     @foreach (var c in Visibles)
                     {
                         <tr>
-                            <td class="text-nowrap">@Formato.Fecha(c.FechaHora)</td>
-                            <td class="text-nowrap">@Formato.Hora(c.FechaHora) – @Formato.Hora(c.FechaHoraFin)</td>
+                            <td class="text-nowrap">@Formato.Fecha(c.Fecha)</td>
+                            <td class="text-nowrap">@Formato.Hora(c.Hora) – @Formato.Hora(c.HoraFin)</td>
                             <td>
                                 @if (c.Paciente is not null)
                                 {
@@ -87,12 +87,11 @@ else if (!SinConexion)
     {
         get
         {
-            var inicioHoy = Hoy.ToDateTime(TimeOnly.MinValue);
             return _periodo switch
             {
-                "pasadas" => _todas.Where(c => c.FechaHora < inicioHoy).OrderByDescending(c => c.FechaHora).ToList(),
-                "todas" => _todas.OrderByDescending(c => c.FechaHora).ToList(),
-                _ => _todas.Where(c => c.FechaHora >= inicioHoy).OrderBy(c => c.FechaHora).ToList()
+                "pasadas" => _todas.Where(c => c.Fecha < Hoy).OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora).ToList(),
+                "todas" => _todas.OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora).ToList(),
+                _ => _todas.Where(c => c.Fecha >= Hoy).OrderBy(c => c.Fecha).ThenBy(c => c.Hora).ToList()
             };
         }
     }

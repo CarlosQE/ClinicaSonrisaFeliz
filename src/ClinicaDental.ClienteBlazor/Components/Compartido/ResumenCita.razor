@@ -3,8 +3,8 @@
     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
         <span class="kpi-icono tono-primario"><span class="ms">event</span></span>
         <div class="flex-grow-1">
-            <div class="h4 mb-0 text-capitalize-first">@Formato.FechaLarga(Cita.FechaHora)</div>
-            <div class="text-muted">@Formato.Hora(Cita.FechaHora) – @Formato.Hora(Cita.FechaHoraFin) · @Cita.DuracionMinutos minutos</div>
+            <div class="h4 mb-0 text-capitalize-first">@Formato.FechaLarga(Cita.Fecha)</div>
+            <div class="text-muted">@Formato.Hora(Cita.Hora) – @Formato.Hora(Cita.HoraFin) · @Cita.DuracionMinutos minutos</div>
         </div>
         <ChipEstadoCita Estado="Cita.Estado" />
     </div>

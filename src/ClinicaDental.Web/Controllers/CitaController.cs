@@ -79,22 +79,25 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("La duración debe estar entre 15 y 240 minutos");
             }
 
-            if (!_citaServicio.FechaFutura(citaDto.FechaHora))
+            var fecha = citaDto.Fecha!.Value;
+            var hora = citaDto.Hora!.Value;
+
+            if (!_citaServicio.FechaFutura(fecha, hora))
             {
                 return BadRequest("La cita debe programarse para una fecha y hora futura");
             }
 
-            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo, citaDto.FechaHora, citaDto.DuracionMinutos))
+            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo");
             }
 
-            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo, citaDto.FechaHora, citaDto.DuracionMinutos))
+            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El odontólogo ya tiene una cita en ese horario");
             }
 
-            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente, citaDto.FechaHora, citaDto.DuracionMinutos))
+            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El paciente ya tiene otra cita en ese horario");
             }
@@ -141,29 +144,32 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("El odontólogo está inactivo y no puede recibir citas");
             }
 
-            if (!_citaServicio.FechaFutura(reprogramarDto.NuevaFechaHora))
+            var nuevaFecha = reprogramarDto.NuevaFecha!.Value;
+            var nuevaHora = reprogramarDto.NuevaHora!.Value;
+
+            if (!_citaServicio.FechaFutura(nuevaFecha, nuevaHora))
             {
                 return BadRequest("La cita debe programarse para una fecha y hora futura");
             }
 
-            if (!_citaServicio.DentroDeHorario(idOdontologo, reprogramarDto.NuevaFechaHora, cita.DuracionMinutos))
+            if (!_citaServicio.DentroDeHorario(idOdontologo, nuevaFecha, nuevaHora, cita.DuracionMinutos))
             {
                 return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo");
             }
 
-            if (!_citaServicio.OdontologoDisponible(idOdontologo, reprogramarDto.NuevaFechaHora, cita.DuracionMinutos, cita.Id))
+            if (!_citaServicio.OdontologoDisponible(idOdontologo, nuevaFecha, nuevaHora, cita.DuracionMinutos, cita.Id))
             {
                 return BadRequest("El odontólogo ya tiene una cita en ese horario");
             }
 
-            if (!_citaServicio.PacienteDisponible(cita.IdPaciente, reprogramarDto.NuevaFechaHora, cita.DuracionMinutos, cita.Id))
+            if (!_citaServicio.PacienteDisponible(cita.IdPaciente, nuevaFecha, nuevaHora, cita.DuracionMinutos, cita.Id))
             {
                 return BadRequest("El paciente ya tiene otra cita en ese horario");
             }
 
             try
             {
-                var citaReprogramada = _citaServicio.reprogramar(id, reprogramarDto.NuevaFechaHora, reprogramarDto.IdNuevoOdontologo);
+                var citaReprogramada = _citaServicio.reprogramar(id, nuevaFecha, nuevaHora, reprogramarDto.IdNuevoOdontologo);
                 return Ok(citaReprogramada);
             }
             catch (Exception ex)

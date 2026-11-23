@@ -190,6 +190,30 @@ Rutas base por controlador: `api/[controller]` (p. ej. `api/Paciente`, `api/Odon
 | PUT | `/api/Cita/{id}/reprogramar` | `ReprogramarCita` |
 | PUT | `/api/Cita/{id}/cancelar` | `CancelarCita` |
 
+Decisión del modelo: **Fecha y Hora van en propiedades separadas (DateOnly y TimeOnly)**.
+
+Ejemplo `POST /api/Cita`:
+
+```json
+{
+  "idPaciente": "30000000-0000-0000-0000-000000000001",
+  "idOdontologo": "20000000-0000-0000-0000-000000000001",
+  "fecha": "2026-12-01",
+  "hora": "09:00:00",
+  "duracionMinutos": 30,
+  "motivo": "Limpieza"
+}
+```
+
+Ejemplo `PUT /api/Cita/{id}/reprogramar`:
+
+```json
+{
+  "nuevaFecha": "2026-12-02",
+  "nuevaHora": "10:30:00"
+}
+```
+
 ### Tratamientos (`api/Tratamiento`)
 
 | Verbo | Ruta | Name |

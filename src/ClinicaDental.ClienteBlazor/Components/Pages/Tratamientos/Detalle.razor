@@ -30,7 +30,7 @@ else if (_tratamiento is { } t)
                     <div><dt>Cita</dt><dd>
                         @if (t.IdCita is Guid idCita)
                         {
-                            <a href="citas/@idCita">@(t.Cita is null ? "Ver cita" : Formato.FechaHora(t.Cita.FechaHora))</a>
+                            <a href="citas/@idCita">@(t.Cita is null ? "Ver cita" : Formato.FechaHora(t.Cita.Fecha, t.Cita.Hora))</a>
                         }
                         else
                         {

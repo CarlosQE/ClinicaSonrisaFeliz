@@ -8,7 +8,7 @@
 }
 else if (_cita is { } c)
 {
-    <Encabezado Titulo="Reprogramar cita" Subtitulo="@($"{c.Paciente?.NombreCompleto} · actualmente el {Formato.FechaHora(c.FechaHora)}")">
+    <Encabezado Titulo="Reprogramar cita" Subtitulo="@($"{c.Paciente?.NombreCompleto} · actualmente el {Formato.FechaHora(c.Fecha, c.Hora)}")">
         <Migas><a href="citas">Citas</a><span class="ms">chevron_right</span><a href="citas/@c.Id">Detalle</a></Migas>
     </Encabezado>
 
@@ -27,11 +27,18 @@ else if (_cita is { } c)
                     <label for="odontologo">Odontólogo</label>
                     <div class="ayuda">Puedes mantener al mismo odontólogo o asignar otro.</div>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputDate Type="InputDateType.DateTimeLocal" id="fecha-hora" class="form-control" @bind-Value="_datos.NuevaFechaHora" step="900" />
-                    <label for="fecha-hora">Nueva fecha y hora *</label>
-                    <ValidationMessage For="() => _datos.NuevaFechaHora" />
-                    <div class="ayuda">Se mantiene la duración de @c.DuracionMinutos minutos.</div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-7 form-floating">
+                        <InputDate id="nueva-fecha" class="form-control" @bind-Value="_datos.NuevaFecha" />
+                        <label for="nueva-fecha">Nueva fecha *</label>
+                        <ValidationMessage For="() => _datos.NuevaFecha" />
+                    </div>
+                    <div class="col-md-5 form-floating">
+                        <InputDate Type="InputDateType.Time" id="nueva-hora" class="form-control" @bind-Value="_datos.NuevaHora" />
+                        <label for="nueva-hora">Nueva hora *</label>
+                        <ValidationMessage For="() => _datos.NuevaHora" />
+                    </div>
+                    <div class="col-12"><div class="ayuda">Se mantiene la duración de @c.DuracionMinutos minutos.</div></div>
                 </div>
                 <div class="formulario-acciones">
                     <a class="btn btn-text" href="citas/@c.Id">Volver</a>
@@ -40,8 +47,8 @@ else if (_cita is { } c)
             </EditForm>
         </div>
         <div class="col-xl-5">
-            <HorariosLibres IdOdontologo="_datos.IdNuevoOdontologo" Fecha="@(_datos.NuevaFechaHora is { } f ? DateOnly.FromDateTime(f) : null)"
-                            Duracion="c.DuracionMinutos" Excluir="c.Id" Seleccionado="_datos.NuevaFechaHora" AlElegir="h => _datos.NuevaFechaHora = h" />
+            <HorariosLibres IdOdontologo="_datos.IdNuevoOdontologo" Fecha="_datos.NuevaFecha"
+                            Duracion="c.DuracionMinutos" Excluir="c.Id" Seleccionado="_datos.NuevaHora" AlElegir="h => _datos.NuevaHora = h" />
         </div>
     </div>
 }
@@ -72,7 +79,7 @@ else if (_cita is { } c)
         }
         else
         {
-            _datos = new ReprogramarCitaDto { NuevaFechaHora = _cita.FechaHora, IdNuevoOdontologo = _cita.IdOdontologo };
+            _datos = new ReprogramarCitaDto { NuevaFecha = _cita.Fecha, NuevaHora = _cita.Hora, IdNuevoOdontologo = _cita.IdOdontologo };
             _odontologos = await OdontologosAsync();
         }
         Cargando = false;
@@ -89,7 +96,7 @@ else if (_cita is { } c)
             ErrorFormulario = r.Mensaje;
             return;
         }
-        Notificar.Exito($"Cita reprogramada para el {Formato.FechaHora(_datos.NuevaFechaHora!.Value)}.");
+        Notificar.Exito($"Cita reprogramada para el {Formato.FechaHora(_datos.NuevaFecha!.Value, _datos.NuevaHora!.Value)}.");
         Nav.NavigateTo($"citas/{Id}");
     }
 }

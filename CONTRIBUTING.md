@@ -49,6 +49,7 @@ Estructura vigente del proyecto web (`src/ClinicaDental.Web/`): `Controllers/`, 
 - Lógica de negocio y consultas en el **servicio** (no en el controlador).
 - Hora actual mediante `TimeProvider` inyectado (no `DateTime.Now`).
 - Sin repositorios genéricos, MediatR, AutoMapper ni ASP.NET Identity (la autenticación es JWT propio, ver 4.2).
+- Citas: **Fecha y Hora van en propiedades separadas (DateOnly y TimeOnly)**. Ejemplo `POST /api/Cita`: `{ "idPaciente": "...", "idOdontologo": "...", "fecha": "2026-12-01", "hora": "09:00:00", "duracionMinutos": 30, "motivo": "Limpieza" }`. Ejemplo `PUT /api/Cita/{id}/reprogramar`: `{ "nuevaFecha": "2026-12-02", "nuevaHora": "10:30:00" }`.
 
 ## 4.1 Convenciones del frontend (`ClinicaDental.ClienteBlazor`, Blazor)
 

@@ -558,3 +558,92 @@ button.avatar-usuario { border: 0; cursor: pointer; }
 /* Blazor enfoca el h1 al navegar (accesibilidad); sin recuadro visible. */
 h1:focus, h1:focus-visible { outline: none; }
 
+/* =====================================================================
+   MOVIMIENTO
+   ===================================================================== */
+:root {
+    --mov-ease: cubic-bezier(.2, 0, 0, 1);
+    --mov-rapido: 150ms;
+    --mov-medio: 250ms;
+}
+
+@keyframes fundido { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sube { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes dialogo-entra {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes menu-entra {
+    from { opacity: 0; transform: translateY(-6px) scale(.96); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+    .pagina-transicion { animation: fundido var(--mov-medio) var(--mov-ease) backwards; }
+
+    .pagina-encabezado, .bienvenida, .tabla-contenedor, .tarjeta, .tarjeta-borde,
+    .tarjeta-elevada, .tarjeta-plana, .perfil-cabecera, .vacio, .aviso,
+    .selector-dia, .formulario, .kpi {
+        animation: sube 300ms var(--mov-ease) backwards;
+    }
+
+    :nth-child(2) > .kpi { animation-delay: 60ms; }
+    :nth-child(3) > .kpi { animation-delay: 120ms; }
+    :nth-child(4) > .kpi { animation-delay: 180ms; }
+
+    .tabla tbody tr, .lista > li { animation: fundido 250ms var(--mov-ease) backwards; }
+    .tabla tbody tr:nth-child(n+2), .lista > li:nth-child(n+2) { animation-delay: 30ms; }
+    .tabla tbody tr:nth-child(n+3), .lista > li:nth-child(n+3) { animation-delay: 60ms; }
+    .tabla tbody tr:nth-child(n+4), .lista > li:nth-child(n+4) { animation-delay: 90ms; }
+    .tabla tbody tr:nth-child(n+5), .lista > li:nth-child(n+5) { animation-delay: 120ms; }
+    .tabla tbody tr:nth-child(n+6), .lista > li:nth-child(n+6) { animation-delay: 150ms; }
+    .tabla tbody tr:nth-child(n+7), .lista > li:nth-child(n+7) { animation-delay: 180ms; }
+    .tabla tbody tr:nth-child(n+8), .lista > li:nth-child(n+8) { animation-delay: 210ms; }
+
+    .dialogo-fondo, .cajon-fondo { animation: fundido 200ms ease backwards; }
+    .dialogo { animation: dialogo-entra 220ms var(--mov-ease) backwards; }
+    .menu-flotante { transform-origin: top right; animation: menu-entra 160ms var(--mov-ease) backwards; }
+}
+
+.btn, .btn-icono, .chip-filtro, .hora-btn, .opcion-tipo, .cajon-enlace {
+    transition: background-color var(--mov-rapido) ease, color var(--mov-rapido) ease,
+                border-color var(--mov-rapido) ease, box-shadow var(--mov-rapido) ease,
+                transform var(--mov-rapido) var(--mov-ease);
+}
+.btn:active:not(:disabled), .btn-icono:active, .chip-filtro:active,
+.hora-btn:active:not(:disabled), .opcion-tipo:active { transform: scale(.96); }
+
+.kpi, a.tarjeta-borde, a.tarjeta-elevada, .lista-item {
+    transition: transform var(--mov-medio) var(--mov-ease), box-shadow var(--mov-medio) var(--mov-ease),
+                background-color var(--mov-rapido) ease, border-color var(--mov-rapido) ease;
+}
+a.kpi:hover, a.tarjeta-borde:hover, a.tarjeta-elevada:hover { transform: translateY(-2px); box-shadow: var(--md-elev-2); }
+
+.tabla tbody tr { transition: background-color var(--mov-rapido) ease; }
+.form-control, .form-select { transition: border-color var(--mov-rapido) ease, box-shadow var(--mov-rapido) ease; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .menu-usuario-panel { transform-origin: top right; animation: menu-entra 160ms var(--mov-ease) backwards; }
+}
+
+@keyframes dialogo-sale {
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to   { opacity: 0; transform: translate(-50%, -48%) scale(.96); }
+}
+@keyframes fundido-sale { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+    .dialogo.saliendo { animation: dialogo-sale 170ms var(--mov-ease) forwards; pointer-events: none; }
+    .dialogo-fondo.saliendo { animation: fundido-sale 170ms ease forwards; pointer-events: none; }
+
+    .horarios-chips .chip-filtro { animation: sube 250ms var(--mov-ease) backwards; }
+    .horarios-chips .chip-filtro:nth-child(2) { animation-delay: 25ms; }
+    .horarios-chips .chip-filtro:nth-child(3) { animation-delay: 50ms; }
+    .horarios-chips .chip-filtro:nth-child(4) { animation-delay: 75ms; }
+    .horarios-chips .chip-filtro:nth-child(5) { animation-delay: 100ms; }
+    .horarios-chips .chip-filtro:nth-child(6) { animation-delay: 125ms; }
+    .horarios-chips .chip-filtro:nth-child(7) { animation-delay: 150ms; }
+    .horarios-chips .chip-filtro:nth-child(n+8) { animation-delay: 175ms; }
+}
+

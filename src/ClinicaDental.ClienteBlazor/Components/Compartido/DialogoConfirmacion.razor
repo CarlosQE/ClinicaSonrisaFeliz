@@ -3,8 +3,8 @@
 
 @if (_abierto)
 {
-    <div class="dialogo-fondo" @onclick="() => Responder(false)"></div>
-    <div class="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dialogo-titulo">
+    <div class="dialogo-fondo @(_cerrando ? "saliendo" : "")" @onclick="() => Responder(false)"></div>
+    <div class="dialogo @(_cerrando ? "saliendo" : "")" role="alertdialog" aria-modal="true" aria-labelledby="dialogo-titulo">
         <div class="dialogo-icono"><span class="ms ms-lg">warning</span></div>
         <h2 id="dialogo-titulo">@_titulo</h2>
         <p>@_mensaje</p>
@@ -16,21 +16,31 @@
 }
 
 @code {
-    private bool _abierto;
+    private bool _abierto, _cerrando;
+    private int _version;
     private string _titulo = string.Empty, _mensaje = string.Empty, _boton = "Eliminar";
 
     protected override void OnInitialized() => Dialogo.AlAbrir += Abrir;
 
     private void Abrir(string titulo, string mensaje, string boton) => _ = InvokeAsync(() =>
     {
-        (_titulo, _mensaje, _boton, _abierto) = (titulo, mensaje, boton, true);
+        _version++;
+        (_titulo, _mensaje, _boton, _abierto, _cerrando) = (titulo, mensaje, boton, true, false);
         StateHasChanged();
     });
 
-    private void Responder(bool aceptar)
+    private async Task Responder(bool aceptar)
     {
-        _abierto = false;
-        Dialogo.Responder(aceptar);
+        if (_cerrando) return;
+        _cerrando = true;
+        var version = _version;
+        Dialogo.Responder(aceptar);   // la lógica sigue de inmediato; solo el cierre visual espera
+        await Task.Delay(180);
+        if (version == _version)      // si se abrió otro diálogo mientras tanto, no lo cierres
+        {
+            _abierto = false;
+            _cerrando = false;
+        }
     }
 
     public void Dispose() => Dialogo.AlAbrir -= Abrir;

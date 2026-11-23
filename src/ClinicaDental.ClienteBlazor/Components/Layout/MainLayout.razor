@@ -87,7 +87,7 @@
 
             <main class="contenido" role="main">
                 <ErrorBoundary @ref="_limiteErrores">
-                    <ChildContent>@Body</ChildContent>
+                    <ChildContent><div class="pagina-transicion" @key="_ruta">@Body</div></ChildContent>
                     <ErrorContent Context="excepcion">
                         <Vacio Icono="sentiment_dissatisfied" Titulo="Algo salió mal" Texto="Ocurrió un error inesperado al mostrar esta página.">
                             <a class="btn btn-filled" href="">Ir al inicio</a>
@@ -106,11 +106,13 @@
     private bool _cajonAbierto;
     private bool _menuUsuario;
     private string? _busqueda;
+    private string _ruta = "";
     private string _urlSwagger = string.Empty;
     private ErrorBoundary? _limiteErrores;
 
     protected override void OnInitialized()
     {
+        _ruta = new Uri(Nav.Uri).AbsolutePath;
         _urlSwagger = (Config["ApiSettings:BaseUrl"] ?? "").TrimEnd('/') + "/swagger";
         Api.CargaCambio += AlCambiarCarga;
         Nav.LocationChanged += AlNavegar;
@@ -120,6 +122,7 @@
 
     private void AlNavegar(object? sender, LocationChangedEventArgs e)
     {
+        _ruta = new Uri(e.Location).AbsolutePath;
         _cajonAbierto = false;
         _menuUsuario = false;
         _limiteErrores?.Recover();

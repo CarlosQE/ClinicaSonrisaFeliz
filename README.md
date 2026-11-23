@@ -221,11 +221,10 @@ El seed se define en `Data/DatosIniciales.cs` y `Factories/*.cs` (aplicado por m
 | Odontólogos (4) | `20000000-0000-0000-0000-000000000001` … `…0004` (el `…0004` está inactivo) |
 | Pacientes (5) | `30000000-0000-0000-0000-000000000001` … `…0005` |
 | Horarios | Lunes a viernes, 08:00–12:00 y 14:00–18:00, para los 4 odontólogos (`4000…0001`–`…0040`) |
-| Tratamientos (2) | `50000000-0000-0000-0000-000000000001` (limpieza) y `…0002` (endodoncia) |
+| Citas (7) | `80000000-0000-0000-0000-000000000001` … `…0007` (2 atendidas ligadas a los tratamientos, 1 cancelada, 3 programadas y 1 reprogramada) |
+| Tratamientos (2) | `50000000-0000-0000-0000-000000000001` (limpieza) y `…0002` (endodoncia), vinculados a citas sembradas |
 | Pago (1) | `60000000-0000-0000-0000-000000000001`, adelanto de 300 Bs al tratamiento `…0002` |
 | Usuario (1) | `70000000-0000-0000-0000-000000000001`: `admin` / `Admin.Sonrisa2026` (Administrador) |
-
-No se siembran citas de ejemplo.
 
 ## Estructura de carpetas (vigente)
 

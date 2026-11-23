@@ -49,7 +49,7 @@ else if (_citas.Count > 0)
             {
                 <li>
                     <a class="lista-item @(c.Estado == EstadoCita.Cancelada ? "opacity-50" : "")" href="citas/@c.Id">
-                        <span class="lista-hora"><b>@Formato.Hora(c.FechaHora)</b><span>@Formato.Hora(c.FechaHoraFin)</span></span>
+                        <span class="lista-hora"><b>@Formato.Hora(c.Hora)</b><span>@Formato.Hora(c.HoraFin)</span></span>
                         @if (c.Paciente is not null)
                         {
                             <Avatar Nombres="@c.Paciente.Nombres" Apellidos="@c.Paciente.Apellidos" />
@@ -58,7 +58,7 @@ else if (_citas.Count > 0)
                             <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
                             <span class="lista-sub d-block"><span class="ms ms-sm">stethoscope</span> @c.Odontologo?.NombreCompleto · @c.Motivo</span>
                         </span>
-                        @if (c.FechaHoraFin < Ahora && c.EstaVigente)
+                        @if ((c.Fecha < Hoy || (c.Fecha == Hoy && c.HoraFin < TimeOnly.FromDateTime(Ahora))) && c.EstaVigente)
                         {
                             <span class="chip chip--neutral d-none d-md-inline-flex"><span class="ms">history</span>Hora pasada</span>
                         }

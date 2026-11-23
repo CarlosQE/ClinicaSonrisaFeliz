@@ -128,11 +128,13 @@ namespace ClinicaDental.Web.Services
         public bool TieneCitasFuturas(Guid idOdontologo)
         {
             var ahora = Ahora;
+            var hoy = DateOnly.FromDateTime(ahora);
+            var horaActual = TimeOnly.FromDateTime(ahora);
 
             return _context.citas.Any(c =>
                 c.IdOdontologo == idOdontologo &&
                 c.Estado != EstadoCita.Cancelada &&
-                c.FechaHora > ahora);
+                (c.Fecha > hoy || (c.Fecha == hoy && c.Hora > horaActual)));
         }
     }
 }

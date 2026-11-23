@@ -50,7 +50,7 @@ namespace ClinicaDental.Web.Services
                 .Include(c => c.Odontologo)
                 .AsNoTracking()
                 .Where(c => c.IdPaciente == id)
-                .OrderByDescending(c => c.FechaHora)
+                .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora)
                 .ToList();
 
             var tratamientos = _context.tratamientos

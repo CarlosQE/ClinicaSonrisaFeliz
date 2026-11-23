@@ -45,10 +45,15 @@ else
 
                 <div class="formulario-seccion mt-4"><span class="ms">event</span>¿Cuándo?</div>
                 <div class="row g-3">
-                    <div class="col-md-7 form-floating">
-                        <InputDate Type="InputDateType.DateTimeLocal" id="fecha-hora" class="form-control" @bind-Value="_cita.FechaHora" step="900" />
-                        <label for="fecha-hora">Fecha y hora *</label>
-                        <ValidationMessage For="() => _cita.FechaHora" />
+                    <div class="col-md-4 form-floating">
+                        <InputDate id="fecha" class="form-control" @bind-Value="_cita.Fecha" />
+                        <label for="fecha">Fecha *</label>
+                        <ValidationMessage For="() => _cita.Fecha" />
+                    </div>
+                    <div class="col-md-3 form-floating">
+                        <InputDate Type="InputDateType.Time" id="hora" class="form-control" @bind-Value="_cita.Hora" />
+                        <label for="hora">Hora *</label>
+                        <ValidationMessage For="() => _cita.Hora" />
                     </div>
                     <div class="col-md-5 form-floating">
                         <InputSelect id="duracion" class="form-select" @bind-Value="_cita.DuracionMinutos">
@@ -74,8 +79,8 @@ else
             </EditForm>
         </div>
         <div class="col-xl-5">
-            <HorariosLibres IdOdontologo="_cita.IdOdontologo" Fecha="@(_cita.FechaHora is { } f ? DateOnly.FromDateTime(f) : null)"
-                            Duracion="_cita.DuracionMinutos" Seleccionado="_cita.FechaHora" AlElegir="h => _cita.FechaHora = h" />
+            <HorariosLibres IdOdontologo="_cita.IdOdontologo" Fecha="_cita.Fecha"
+                            Duracion="_cita.DuracionMinutos" Seleccionado="_cita.Hora" AlElegir="h => _cita.Hora = h" />
         </div>
     </div>
 }
@@ -95,7 +100,11 @@ else
     {
         _cita.IdPaciente = PacienteQuery;
         _cita.IdOdontologo = OdontologoQuery;
-        if (DateOnly.TryParse(FechaQuery, out var f) && f >= Hoy) _cita.FechaHora = f.ToDateTime(new TimeOnly(9, 0));
+        if (DateOnly.TryParse(FechaQuery, out var f) && f >= Hoy)
+        {
+            _cita.Fecha = f;
+            _cita.Hora = new TimeOnly(9, 0);
+        }
 
         var p = PacientesAsync();
         var o = OdontologosAsync();
@@ -116,7 +125,7 @@ else
             ErrorFormulario = r.Mensaje;
             return;
         }
-        Notificar.Exito($"Cita agendada para el {Formato.FechaHora(r.Datos.FechaHora)}.");
+        Notificar.Exito($"Cita agendada para el {Formato.FechaHora(r.Datos.Fecha, r.Datos.Hora)}.");
         Nav.NavigateTo($"citas/{r.Datos.Id}");
     }
 }

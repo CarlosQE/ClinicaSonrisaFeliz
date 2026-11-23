@@ -1,7 +1,7 @@
 @page "/tratamientos/nuevo"
 
 <Encabezado Titulo="Registrar tratamiento"
-            Subtitulo="@(_citaOrigen is null ? null : $"Desde la cita del {Formato.FechaHora(_citaOrigen.FechaHora)} · al guardar, la cita quedará como Atendida.")">
+            Subtitulo="@(_citaOrigen is null ? null : $"Desde la cita del {Formato.FechaHora(_citaOrigen.Fecha, _citaOrigen.Hora)} · al guardar, la cita quedará como Atendida.")">
     <Migas><a href="tratamientos">Tratamientos</a></Migas>
 </Encabezado>
 
@@ -59,7 +59,7 @@ else
                     <option value="">Sin cita asociada</option>
                     @foreach (var c in _citasPaciente)
                     {
-                        <option value="@c.Id">@Formato.FechaHora(c.FechaHora) · @c.Motivo (@Formato.Texto(c.Estado))</option>
+                        <option value="@c.Id">@Formato.FechaHora(c.Fecha, c.Hora) · @c.Motivo (@Formato.Texto(c.Estado))</option>
                     }
                 </InputSelect>
                 <label for="cita">Cita asociada (opcional)</label>
@@ -124,7 +124,7 @@ else
             _citaOrigen = cita;
             _tratamiento.IdPaciente = cita.IdPaciente;
             _tratamiento.IdOdontologo = cita.IdOdontologo;
-            _tratamiento.Fecha = DateOnly.FromDateTime(cita.FechaHora);
+            _tratamiento.Fecha = cita.Fecha;
         }
         CargarCitasDelPaciente();
         if (_citaOrigen is not null) _tratamiento.IdCita = _citaOrigen.Id;
@@ -135,7 +135,7 @@ else
     {
         _citasPaciente = _todasCitas
             .Where(c => c.IdPaciente == _tratamiento.IdPaciente && c.Estado != EstadoCita.Cancelada)
-            .OrderByDescending(c => c.FechaHora)
+            .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora)
             .ToList();
         if (_tratamiento.IdCita is Guid id && _citasPaciente.All(c => c.Id != id)) _tratamiento.IdCita = null;
     }

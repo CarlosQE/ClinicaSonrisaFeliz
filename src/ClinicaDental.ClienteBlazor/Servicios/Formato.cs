@@ -12,6 +12,7 @@ namespace ClinicaDental.ClienteBlazor.Servicios
 
         public static string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy");
         public static string Fecha(DateTime fecha) => fecha.ToString("dd/MM/yyyy");
+        public static string FechaHora(DateOnly fecha, TimeOnly hora) => $"{fecha:dd/MM/yyyy} {hora:HH:mm}";
         public static string FechaHora(DateTime fecha) => fecha.ToString("dd/MM/yyyy HH:mm");
         public static string Hora(DateTime fecha) => fecha.ToString("HH:mm");
         public static string Hora(TimeOnly hora) => hora.ToString("HH:mm");

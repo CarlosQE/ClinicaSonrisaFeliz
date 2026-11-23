@@ -65,7 +65,7 @@ else
                         {
                             <li>
                                 <a class="lista-item" href="citas/@c.Id">
-                                    <span class="lista-hora"><b>@Formato.Hora(c.FechaHora)</b><span>@c.DuracionMinutos min</span></span>
+                                    <span class="lista-hora"><b>@Formato.Hora(c.Hora)</b><span>@c.DuracionMinutos min</span></span>
                                     <span class="lista-texto">
                                         <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
                                         <span class="lista-sub d-block">@c.Motivo · @c.Odontologo?.NombreCompleto</span>
@@ -99,7 +99,7 @@ else
                                     <span class="kpi-icono tono-secundario icono-40"><span class="ms">event</span></span>
                                     <span class="lista-texto">
                                         <span class="lista-titulo d-block">@c.Paciente?.NombreCompleto</span>
-                                        <span class="lista-sub d-block">@Formato.FechaHora(c.FechaHora) · @c.Odontologo?.NombreCompleto</span>
+                                        <span class="lista-sub d-block">@Formato.FechaHora(c.Fecha, c.Hora) · @c.Odontologo?.NombreCompleto</span>
                                     </span>
                                 </a>
                             </li>
@@ -173,8 +173,8 @@ else
         _totalPacientes = pacientes.Result.Count;
         _odontologosActivos = odontologos.Result.Count;
         _citasHoy = agenda.Result;
-        var manana = Hoy.AddDays(1).ToDateTime(TimeOnly.MinValue);
-        _proximas = citas.Result.Where(c => c.FechaHora >= manana && c.EstaVigente).OrderBy(c => c.FechaHora).Take(5).ToList();
+        var manana = Hoy.AddDays(1);
+        _proximas = citas.Result.Where(c => c.Fecha >= manana && c.EstaVigente).OrderBy(c => c.Fecha).ThenBy(c => c.Hora).Take(5).ToList();
         _deudas = deudas.Result;
         Cargando = false;
     }

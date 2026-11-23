@@ -76,7 +76,7 @@ else if (_historial is { } h)
                                 <span class="punto @(c.Estado == EstadoCita.Atendida ? "tono-exito" : c.Estado == EstadoCita.Cancelada ? "tono-secundario" : "tono-primario")"><span class="ms ms-sm">@Formato.Icono(c.Estado)</span></span>
                                 <a class="lista-texto text-reset" href="citas/@c.Id">
                                     <span class="lista-titulo d-block">@c.Motivo</span>
-                                    <span class="lista-sub d-block">@Formato.FechaHora(c.FechaHora) · @c.Odontologo?.NombreCompleto</span>
+                                    <span class="lista-sub d-block">@Formato.FechaHora(c.Fecha, c.Hora) · @c.Odontologo?.NombreCompleto</span>
                                 </a>
                                 <ChipEstadoCita Estado="c.Estado" />
                             </li>

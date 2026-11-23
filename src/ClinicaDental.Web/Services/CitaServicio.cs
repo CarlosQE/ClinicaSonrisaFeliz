@@ -27,7 +27,7 @@ namespace ClinicaDental.Web.Services
             return _context.citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Odontologo)
-                .OrderBy(c => c.FechaHora)
+                .OrderBy(c => c.Fecha).ThenBy(c => c.Hora)
                 .ToList();
         }
 
@@ -41,13 +41,10 @@ namespace ClinicaDental.Web.Services
 
         public IEnumerable<Cita> ObtenerAgendaDiaria(DateOnly fecha, Guid? idOdontologo = null, bool incluirCanceladas = false)
         {
-            var desde = fecha.ToDateTime(TimeOnly.MinValue);
-            var hasta = desde.AddDays(1);
-
             var query = _context.citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Odontologo)
-                .Where(c => c.FechaHora >= desde && c.FechaHora < hasta);
+                .Where(c => c.Fecha == fecha);
 
             if (idOdontologo.HasValue)
             {
@@ -59,7 +56,7 @@ namespace ClinicaDental.Web.Services
                 query = query.Where(c => c.Estado != EstadoCita.Cancelada);
             }
 
-            return query.OrderBy(c => c.FechaHora).ToList();
+            return query.OrderBy(c => c.Hora).ToList();
         }
 
         public Cita agendar(CitaDto citaDto)
@@ -69,7 +66,8 @@ namespace ClinicaDental.Web.Services
                 Id = Guid.NewGuid(),
                 IdPaciente = citaDto.IdPaciente,
                 IdOdontologo = citaDto.IdOdontologo,
-                FechaHora = citaDto.FechaHora,
+                Fecha = citaDto.Fecha!.Value,
+                Hora = citaDto.Hora!.Value,
                 DuracionMinutos = citaDto.DuracionMinutos,
                 Motivo = citaDto.Motivo.Trim(),
                 Estado = EstadoCita.Programada,
@@ -82,11 +80,12 @@ namespace ClinicaDental.Web.Services
             return cita;
         }
 
-        public Cita reprogramar(Guid id, DateTime nuevaFechaHora, Guid? idNuevoOdontologo)
+        public Cita reprogramar(Guid id, DateOnly nuevaFecha, TimeOnly nuevaHora, Guid? idNuevoOdontologo)
         {
             var cita = _context.citas.First(c => c.Id == id);
 
-            cita.FechaHora = nuevaFechaHora;
+            cita.Fecha = nuevaFecha;
+            cita.Hora = nuevaHora;
             cita.IdOdontologo = idNuevoOdontologo ?? cita.IdOdontologo;
             cita.Estado = EstadoCita.Reprogramada;
 
@@ -125,57 +124,54 @@ namespace ClinicaDental.Web.Services
             return minutos >= DuracionMinima && minutos <= DuracionMaxima;
         }
 
-        public bool FechaFutura(DateTime fechaHora)
+        public bool FechaFutura(DateOnly fecha, TimeOnly hora)
         {
-            return fechaHora > Ahora;
+            return fecha.ToDateTime(hora) > Ahora;
         }
 
-        public bool DentroDeHorario(Guid idOdontologo, DateTime fechaHora, int duracionMinutos)
+        public bool DentroDeHorario(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos)
         {
-            var fin = fechaHora.AddMinutes(duracionMinutos);
+            var finDateTime = fecha.ToDateTime(hora).AddMinutes(duracionMinutos);
 
-            if (fin.Date != fechaHora.Date)
+            if (DateOnly.FromDateTime(finDateTime) != fecha)
             {
                 return false;
             }
 
-            var dia = fechaHora.DayOfWeek;
-            var horaInicio = TimeOnly.FromDateTime(fechaHora);
-            var horaFin = TimeOnly.FromDateTime(fin);
+            var horaFin = TimeOnly.FromDateTime(finDateTime);
+            var dia = fecha.DayOfWeek;
 
             return _context.horariosOdontologo.Any(h =>
                 h.IdOdontologo == idOdontologo &&
                 h.DiaSemana == dia &&
-                h.HoraInicio <= horaInicio &&
+                h.HoraInicio <= hora &&
                 horaFin <= h.HoraFin);
         }
 
-        public bool OdontologoDisponible(Guid idOdontologo, DateTime fechaHora, int duracionMinutos, Guid? excluirIdCita = null)
+        public bool OdontologoDisponible(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null)
         {
-            return !HayChoque(c => c.IdOdontologo == idOdontologo, fechaHora, duracionMinutos, excluirIdCita);
+            return !HayChoque(c => c.IdOdontologo == idOdontologo, fecha, hora, duracionMinutos, excluirIdCita);
         }
 
-        public bool PacienteDisponible(Guid idPaciente, DateTime fechaHora, int duracionMinutos, Guid? excluirIdCita = null)
+        public bool PacienteDisponible(Guid idPaciente, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null)
         {
-            return !HayChoque(c => c.IdPaciente == idPaciente, fechaHora, duracionMinutos, excluirIdCita);
+            return !HayChoque(c => c.IdPaciente == idPaciente, fecha, hora, duracionMinutos, excluirIdCita);
         }
 
-        private bool HayChoque(System.Linq.Expressions.Expression<Func<Cita, bool>> filtro, DateTime inicio, int duracionMinutos, Guid? excluirIdCita)
+        private bool HayChoque(System.Linq.Expressions.Expression<Func<Cita, bool>> filtro, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita)
         {
-            var fin = inicio.AddMinutes(duracionMinutos);
-            var desde = inicio.Date;
-            var hasta = desde.AddDays(1);
+            var horaFin = hora.AddMinutes(duracionMinutos);
 
             var query = _context.citas.AsNoTracking()
                 .Where(filtro)
-                .Where(c => c.FechaHora >= desde && c.FechaHora < hasta && c.Estado != EstadoCita.Cancelada);
+                .Where(c => c.Fecha == fecha && c.Estado != EstadoCita.Cancelada);
 
             if (excluirIdCita.HasValue)
             {
                 query = query.Where(c => c.Id != excluirIdCita.Value);
             }
 
-            return query.ToList().Any(c => inicio < c.FechaHoraFin && c.FechaHora < fin);
+            return query.ToList().Any(c => hora < c.HoraFin && c.Hora < horaFin);
         }
     }
 }

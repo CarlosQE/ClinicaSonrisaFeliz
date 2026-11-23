@@ -34,11 +34,14 @@ namespace ClinicaDental.Web.Migrations
                     b.Property<int>("Estado")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("FechaHora")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("Fecha")
+                        .HasColumnType("date");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
+
+                    b.Property<TimeOnly>("Hora")
+                        .HasColumnType("time");
 
                     b.Property<Guid>("IdOdontologo")
                         .HasColumnType("uniqueidentifier");
@@ -57,11 +60,98 @@ namespace ClinicaDental.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdOdontologo", "FechaHora");
+                    b.HasIndex("IdOdontologo", "Fecha", "Hora");
 
-                    b.HasIndex("IdPaciente", "FechaHora");
+                    b.HasIndex("IdPaciente", "Fecha", "Hora");
 
                     b.ToTable("citas");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000001"),
+                            DuracionMinutos = 30,
+                            Estado = 3,
+                            Fecha = new DateOnly(2026, 11, 5),
+                            FechaRegistro = new DateTime(2026, 11, 3, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(9, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000001"),
+                            Motivo = "Limpieza dental"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000002"),
+                            DuracionMinutos = 60,
+                            Estado = 3,
+                            Fecha = new DateOnly(2026, 11, 6),
+                            FechaRegistro = new DateTime(2026, 11, 4, 11, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(10, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000003"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000002"),
+                            Motivo = "Dolor de muela, posible conducto"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000003"),
+                            DuracionMinutos = 30,
+                            Estado = 2,
+                            Fecha = new DateOnly(2026, 11, 10),
+                            FechaRegistro = new DateTime(2026, 11, 5, 9, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(14, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000003"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000004"),
+                            Motivo = "Control de endodoncia",
+                            MotivoCancelacion = "El paciente no pudo asistir"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000004"),
+                            DuracionMinutos = 30,
+                            Estado = 0,
+                            Fecha = new DateOnly(2026, 12, 1),
+                            FechaRegistro = new DateTime(2026, 11, 20, 15, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(10, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000002"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000003"),
+                            Motivo = "Control de ortodoncia"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000005"),
+                            DuracionMinutos = 30,
+                            Estado = 0,
+                            Fecha = new DateOnly(2026, 12, 2),
+                            FechaRegistro = new DateTime(2026, 11, 20, 16, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(15, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000004"),
+                            Motivo = "Revisión general"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000006"),
+                            DuracionMinutos = 30,
+                            Estado = 0,
+                            Fecha = new DateOnly(2026, 12, 3),
+                            FechaRegistro = new DateTime(2026, 11, 21, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(9, 30, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000002"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000005"),
+                            Motivo = "Primera consulta de ortodoncia"
+                        },
+                        new
+                        {
+                            Id = new Guid("80000000-0000-0000-0000-000000000007"),
+                            DuracionMinutos = 30,
+                            Estado = 1,
+                            Fecha = new DateOnly(2026, 12, 4),
+                            FechaRegistro = new DateTime(2026, 11, 21, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Hora = new TimeOnly(16, 0, 0),
+                            IdOdontologo = new Guid("20000000-0000-0000-0000-000000000001"),
+                            IdPaciente = new Guid("30000000-0000-0000-0000-000000000003"),
+                            Motivo = "Limpieza dental"
+                        });
                 });
 
             modelBuilder.Entity("ClinicaDental.Web.Models.Especialidad", b =>
@@ -751,6 +841,7 @@ namespace ClinicaDental.Web.Migrations
                             Id = new Guid("50000000-0000-0000-0000-000000000001"),
                             Costo = 150.00m,
                             Fecha = new DateOnly(2026, 11, 5),
+                            IdCita = new Guid("80000000-0000-0000-0000-000000000001"),
                             IdOdontologo = new Guid("20000000-0000-0000-0000-000000000001"),
                             IdPaciente = new Guid("30000000-0000-0000-0000-000000000001"),
                             Observaciones = "Limpieza y profilaxis completa",
@@ -761,6 +852,7 @@ namespace ClinicaDental.Web.Migrations
                             Id = new Guid("50000000-0000-0000-0000-000000000002"),
                             Costo = 800.00m,
                             Fecha = new DateOnly(2026, 11, 6),
+                            IdCita = new Guid("80000000-0000-0000-0000-000000000002"),
                             IdOdontologo = new Guid("20000000-0000-0000-0000-000000000003"),
                             IdPaciente = new Guid("30000000-0000-0000-0000-000000000002"),
                             Observaciones = "Tratamiento de conducto, primera sesión",

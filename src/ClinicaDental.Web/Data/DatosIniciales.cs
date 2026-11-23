@@ -15,6 +15,9 @@ namespace ClinicaDental.Web.Data
             // Módulo 1 - Pacientes (ApostolesEvoMorales)
             PacienteFactories.Sembrar(modelBuilder);
 
+            // Módulo 3 - Citas (AndresFundamentalistas)
+            CitaFactories.Sembrar(modelBuilder);
+
             // Módulo 4 - Tratamientos (Ultimo)
             TratamientoFactories.Sembrar(modelBuilder);
 

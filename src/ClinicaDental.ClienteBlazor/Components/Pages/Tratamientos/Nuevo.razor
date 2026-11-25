@@ -80,7 +80,11 @@ else
                 </InputSelect>
                 <label for="odontologo">Odontólogo *</label>
                 <ValidationMessage For="() => _tratamiento.IdOdontologo" />
-                @if (visibles.Count == 0)
+                @if (_tratamiento.IdOdontologo is Guid idOdoSel && _odontologos.FirstOrDefault(o => o.Id == idOdoSel) is { Activo: false })
+                {
+                    <div class="ayuda text-danger">El odontólogo seleccionado está inactivo y no puede registrar tratamientos.</div>
+                }
+                else if (visibles.Count == 0)
                 {
                     <div class="ayuda">No hay odontólogos activos con especialidad en @Formato.Texto(_tratamiento.Tipo).</div>
                 }
@@ -90,7 +94,7 @@ else
                 }
             </div>
             <div class="col-12 form-floating">
-                <InputSelect id="cita" class="form-select" @bind-Value="_tratamiento.IdCita" disabled="@(_tratamiento.IdPaciente is null)">
+                <InputSelect id="cita" class="form-select" @bind-Value="_tratamiento.IdCita" @bind-Value:after="AlCambiarCita" disabled="@(_tratamiento.IdPaciente is null)">
                     <option value="">Sin cita asociada</option>
                     @foreach (var c in _citasPaciente)
                     {
@@ -98,9 +102,14 @@ else
                     }
                 </InputSelect>
                 <label for="cita">Cita asociada (opcional)</label>
+                <ValidationMessage For="() => _tratamiento.IdCita" />
                 @if (_tratamiento.IdPaciente is null)
                 {
                     <div class="ayuda">Elige primero al paciente para ver sus citas.</div>
+                }
+                else if (_citaOrigen is not null && (_citaOrigen.Fecha > Hoy || _citaOrigen.Estado == EstadoCita.Cancelada))
+                {
+                    <div class="ayuda text-danger">Esta cita no admite tratamientos (es futura o está cancelada).</div>
                 }
             </div>
         </div>
@@ -110,16 +119,18 @@ else
             <div class="col-md-6 form-floating">
                 <InputDate id="fecha" class="form-control" @bind-Value="_tratamiento.Fecha" min="2000-01-01" max="@Hoy.ToString("yyyy-MM-dd")" />
                 <label for="fecha">Fecha</label>
+                <ValidationMessage For="() => _tratamiento.Fecha" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputNumber id="costo" class="form-control" @bind-Value="_tratamiento.Costo" step="0.01" min="0.01" max="100000" placeholder="Costo" />
+                <InputNumber id="costo" class="form-control" @bind-Value="_tratamiento.Costo" step="0.01" min="0.01" max="1000000" placeholder="Costo" />
                 <label for="costo">Costo (Bs) *</label>
                 <ValidationMessage For="() => _tratamiento.Costo" />
             </div>
             <div class="col-12 form-floating">
-                <InputTextArea id="observaciones" class="form-control alto-120" @bind-Value="_tratamiento.Observaciones" placeholder="Observaciones" maxlength="500" />
+                <InputTextArea id="observaciones" class="form-control alto-120" @bind-Value="_tratamiento.Observaciones" placeholder="Observaciones" maxlength="1000" />
                 <label for="observaciones">Observaciones clínicas</label>
                 <ValidationMessage For="() => _tratamiento.Observaciones" />
+                <div class="ayuda">Opcional. Entre 3 y 1000 caracteres, sin &lt; ni &gt;.</div>
             </div>
         </div>
 
@@ -160,20 +171,35 @@ else
             _citaOrigen = cita;
             _tratamiento.IdPaciente = cita.IdPaciente;
             _tratamiento.IdOdontologo = cita.IdOdontologo;
-            _tratamiento.Fecha = cita.Fecha;
+            if (cita.Fecha <= Hoy) _tratamiento.Fecha = cita.Fecha;
         }
         CargarCitasDelPaciente();
-        if (_citaOrigen is not null) _tratamiento.IdCita = _citaOrigen.Id;
+        if (_citaOrigen is not null && _citasPaciente.Any(c => c.Id == _citaOrigen.Id))
+        {
+            _tratamiento.IdCita = _citaOrigen.Id;
+        }
         Cargando = false;
     }
 
     private void CargarCitasDelPaciente()
     {
         _citasPaciente = _todasCitas
-            .Where(c => c.IdPaciente == _tratamiento.IdPaciente && c.Estado != EstadoCita.Cancelada)
+            .Where(c => c.IdPaciente == _tratamiento.IdPaciente && c.Estado != EstadoCita.Cancelada && c.Fecha <= Hoy)
             .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora)
             .ToList();
         if (_tratamiento.IdCita is Guid id && _citasPaciente.All(c => c.Id != id)) _tratamiento.IdCita = null;
+    }
+
+    private void AlCambiarCita()
+    {
+        if (_tratamiento.IdCita is Guid idCita && _citasPaciente.FirstOrDefault(c => c.Id == idCita) is { } cita)
+        {
+            _tratamiento.IdOdontologo = cita.IdOdontologo;
+            if (_tratamiento.Fecha is null || _tratamiento.Fecha < cita.Fecha)
+            {
+                _tratamiento.Fecha = cita.Fecha;
+            }
+        }
     }
 
     private void BuscarPaciente(ChangeEventArgs e)
@@ -210,7 +236,7 @@ else
     private void SeleccionarTipo(TipoTratamiento tipo)
     {
         _tratamiento.Tipo = tipo;
-        if (_tratamiento.IdOdontologo is Guid id && OdontologosPorTipo().All(o => o.Id != id))
+        if (_tratamiento.IdCita is null && _tratamiento.IdOdontologo is Guid id && OdontologosPorTipo().All(o => o.Id != id))
         {
             _tratamiento.IdOdontologo = null;
         }

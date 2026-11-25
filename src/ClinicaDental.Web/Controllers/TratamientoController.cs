@@ -9,10 +9,12 @@ namespace ClinicaDental.Web.Controllers
     public class TratamientoController : ControllerBase
     {
         private readonly ITratamiento _tratamientoServicio;
+        private readonly TimeProvider _reloj;
 
-        public TratamientoController(ITratamiento tratamientoServicio)
+        public TratamientoController(ITratamiento tratamientoServicio, TimeProvider reloj)
         {
             _tratamientoServicio = tratamientoServicio;
+            _reloj = reloj;
         }
 
         [HttpGet(Name = "ListarTratamientos")]
@@ -68,11 +70,11 @@ namespace ClinicaDental.Web.Controllers
             if (!_tratamientoServicio.TipoValido(tratamientoDto.Tipo))
                 return BadRequest("El tipo de tratamiento no es válido (0 = LimpiezaDental, 1 = Ortodoncia, 2 = Endodoncia, 3 = Extraccion).");
             if (!_tratamientoServicio.CostoValido(tratamientoDto.Costo))
-                return BadRequest("El costo debe ser mayor a 0, no mayor a 100.000 y tener como máximo 2 decimales.");
+                return BadRequest("El costo debe estar entre 0.01 y 1,000,000 Bs, con como máximo 2 decimales.");
             if (tratamientoDto.Fecha.HasValue && !_tratamientoServicio.FechaValida(tratamientoDto.Fecha.Value, tratamientoDto.IdPaciente.Value))
                 return BadRequest("La fecha del tratamiento no es válida (no futura, desde 2000-01-01 y no anterior al nacimiento del paciente).");
             if (!_tratamientoServicio.ObservacionesOpcionalesValidas(tratamientoDto.Observaciones))
-                return BadRequest("Las observaciones no pueden tener más de 500 caracteres ni caracteres de control.");
+                return BadRequest("Si ingresa observaciones, deben tener entre 3 y 1000 caracteres y no contener '<', '>' ni caracteres de control.");
 
             if (tratamientoDto.IdCita.HasValue && tratamientoDto.IdCita.Value == Guid.Empty)
                 return BadRequest("El id de la cita no es válido.");
@@ -85,7 +87,17 @@ namespace ClinicaDental.Web.Controllers
                     return BadRequest("La cita indicada no pertenece al paciente seleccionado.");
                 if (!_tratamientoServicio.CitaNoCancelada(idCita.Value))
                     return BadRequest("No se puede registrar un tratamiento para una cita cancelada.");
+                if (!_tratamientoServicio.CitaNoFutura(idCita.Value))
+                    return BadRequest("No se puede registrar un tratamiento para una cita futura.");
+                if (!_tratamientoServicio.CitaCorrespondeAOdontologo(idCita.Value, tratamientoDto.IdOdontologo.Value))
+                    return BadRequest("El odontólogo seleccionado no coincide con el odontólogo de la cita asociada.");
+                var fechaEfectiva = tratamientoDto.Fecha ?? DateOnly.FromDateTime(_reloj.GetLocalNow().DateTime);
+                if (!_tratamientoServicio.FechaCoherenteConCita(fechaEfectiva, idCita.Value))
+                    return BadRequest("La fecha del tratamiento no puede ser anterior a la fecha de la cita asociada.");
             }
+
+            if (_tratamientoServicio.ExisteDuplicado(tratamientoDto))
+                return Conflict("Ya existe un tratamiento idéntico registrado.");
 
             try
             {
@@ -96,9 +108,9 @@ namespace ClinicaDental.Web.Controllers
             {
                 return Conflict("No se pudo registrar el tratamiento por un conflicto de datos.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error interno al registrar el tratamiento: {ex.Message}");
+                return StatusCode(500, "Error interno al registrar el tratamiento.");
             }
         }
 
@@ -112,7 +124,7 @@ namespace ClinicaDental.Web.Controllers
             if (!_tratamientoServicio.ExisteTratamiento(id))
                 return NotFound($"No se encontró el tratamiento con el id: {id}");
             if (!_tratamientoServicio.ObservacionesValidas(observacionesDto.Observaciones))
-                return BadRequest("Las observaciones son obligatorias y no pueden tener más de 500 caracteres.");
+                return BadRequest("Las observaciones son obligatorias, deben tener entre 3 y 1000 caracteres y no contener '<', '>' ni caracteres de control.");
 
             try
             {
@@ -123,9 +135,9 @@ namespace ClinicaDental.Web.Controllers
             {
                 return Conflict("No se pudo actualizar el tratamiento por un conflicto de datos.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error interno al actualizar las observaciones del tratamiento: {ex.Message}");
+                return StatusCode(500, "Error interno al actualizar las observaciones del tratamiento.");
             }
         }
 
@@ -146,9 +158,9 @@ namespace ClinicaDental.Web.Controllers
                 _tratamientoServicio.Eliminar(id);
                 return Ok("Tratamiento eliminado correctamente.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Error interno al eliminar el tratamiento: {ex.Message}");
+                return StatusCode(500, "Error interno al eliminar el tratamiento.");
             }
         }
     }

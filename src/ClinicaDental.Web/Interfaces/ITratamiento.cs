@@ -17,12 +17,16 @@ namespace ClinicaDental.Web.Interfaces
         bool OdontologoActivo(Guid idOdontologo);
         bool ExisteCita(Guid idCita);
         bool CitaPerteneceAPaciente(Guid idCita, Guid idPaciente);
+        bool CitaCorrespondeAOdontologo(Guid idCita, Guid idOdontologo);
         bool CitaNoCancelada(Guid idCita);
+        bool CitaNoFutura(Guid idCita);
+        bool FechaCoherenteConCita(DateOnly fechaTratamiento, Guid idCita);
         bool TipoValido(TipoTratamiento tipo);
         bool CostoValido(decimal costo);
         bool FechaValida(DateOnly fecha, Guid idPaciente);
         bool ObservacionesValidas(string? observaciones);
         bool ObservacionesOpcionalesValidas(string? observaciones);
+        bool ExisteDuplicado(TratamientoDto tratamientoDto);
         bool TienePagos(Guid idTratamiento);
     }
 }

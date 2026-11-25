@@ -91,7 +91,12 @@ namespace ClinicaDental.Web.Services
 
         public bool RangoValido(TimeOnly horaInicio, TimeOnly horaFin)
         {
-            return horaFin > horaInicio;
+            var min = new TimeOnly(6, 0);
+            var max = new TimeOnly(22, 0);
+            if (horaInicio < min || horaFin > max) return false;
+            if (horaFin <= horaInicio) return false;
+            var duracion = horaFin.ToTimeSpan() - horaInicio.ToTimeSpan();
+            return duracion.TotalMinutes >= 60;
         }
 
         public bool SeSolapa(Guid idOdontologo, DayOfWeek diaSemana, TimeOnly horaInicio, TimeOnly horaFin, Guid? excluirIdHorario = null)

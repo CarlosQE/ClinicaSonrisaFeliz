@@ -161,17 +161,32 @@ namespace ClinicaDental.Web.Services
 
         public bool CostoValido(decimal costo)
         {
-            return costo > 0 && costo <= 1000000m && decimal.Round(costo, 2) == costo;
+            return costo > 0 && costo <= 100000m && decimal.Round(costo, 2) == costo;
         }
 
-        public bool FechaValida(DateOnly fecha)
+        public bool FechaValida(DateOnly fecha, Guid idPaciente)
         {
-            return fecha != default;
+            var hoy = DateOnly.FromDateTime(Ahora);
+            if (fecha == default) return false;
+            if (fecha > hoy) return false;
+            if (fecha < new DateOnly(2000, 1, 1)) return false;
+            var paciente = _context.pacientes.AsNoTracking().FirstOrDefault(p => p.Id == idPaciente);
+            if (paciente != null && fecha < paciente.FechaNacimiento) return false;
+            return true;
         }
 
         public bool ObservacionesValidas(string? observaciones)
         {
-            return !string.IsNullOrWhiteSpace(observaciones) && observaciones.Trim().Length <= 1000;
+            if (string.IsNullOrWhiteSpace(observaciones)) return false;
+            var n = observaciones.Trim();
+            return n.Length <= 500 && !n.Any(char.IsControl);
+        }
+
+        public bool ObservacionesOpcionalesValidas(string? observaciones)
+        {
+            if (string.IsNullOrWhiteSpace(observaciones)) return true;
+            var n = observaciones.Trim();
+            return n.Length <= 500 && !n.Any(char.IsControl);
         }
 
         public bool TienePagos(Guid idTratamiento)

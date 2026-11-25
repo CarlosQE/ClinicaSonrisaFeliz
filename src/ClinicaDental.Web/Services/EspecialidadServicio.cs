@@ -71,7 +71,18 @@ namespace ClinicaDental.Web.Services
 
         public bool NombreValido(string nombre)
         {
-            return !string.IsNullOrWhiteSpace(nombre) && nombre.Trim().Length <= 80;
+            if (string.IsNullOrWhiteSpace(nombre)) return false;
+            var n = nombre.Trim();
+            return n.Length >= 3 && n.Length <= 60
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^[\p{L} \-]+$");
+        }
+
+        public bool DescripcionValida(string? descripcion)
+        {
+            if (string.IsNullOrWhiteSpace(descripcion)) return true;
+            var n = descripcion.Trim();
+            return n.Length <= 200 && !n.Any(char.IsControl);
         }
 
         public bool NombreRepetido(string nombre, Guid? excluirId = null)

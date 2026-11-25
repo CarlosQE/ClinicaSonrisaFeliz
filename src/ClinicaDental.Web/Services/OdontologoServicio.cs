@@ -119,6 +119,40 @@ namespace ClinicaDental.Web.Services
                 && !string.IsNullOrWhiteSpace(telefono);
         }
 
+        public bool NombreValido(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre)) return false;
+            var n = nombre.Trim();
+            return n.Length >= 2 && n.Length <= 50
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\p{L}+([ '\-]\p{L}+)*$");
+        }
+
+        public bool MatriculaValida(string matricula)
+        {
+            if (string.IsNullOrWhiteSpace(matricula)) return false;
+            var n = matricula.Trim();
+            return n.Length >= 3 && n.Length <= 20
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^[A-Za-z0-9]{3,20}$");
+        }
+
+        public bool TelefonoValido(string telefono)
+        {
+            if (string.IsNullOrWhiteSpace(telefono)) return false;
+            var n = telefono.Trim();
+            return !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\+?\d{7,15}$");
+        }
+
+        public bool EmailValido(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return true;
+            var n = email.Trim();
+            if (n.Length > 100 || n.Any(char.IsControl)) return false;
+            return System.Text.RegularExpressions.Regex.IsMatch(n, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+        }
+
         public bool ExisteOdontologo(Guid id)
         {
             return _context.odontologos.Any(o => o.Id == id);

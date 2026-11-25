@@ -138,7 +138,7 @@ namespace ClinicaDental.Web.Services
 
         public bool DuracionValida(int minutos)
         {
-            return minutos >= DuracionMinima && minutos <= DuracionMaxima;
+            return minutos >= DuracionMinima && minutos <= DuracionMaxima && minutos % 15 == 0;
         }
 
         public bool FechaFutura(DateOnly fecha, TimeOnly hora)
@@ -147,9 +147,32 @@ namespace ClinicaDental.Web.Services
             return fechaHora > Ahora;
         }
 
+        public bool FechaDentroDeRango(DateOnly fecha, TimeOnly hora)
+        {
+            var fechaHora = fecha.ToDateTime(hora);
+            var ahora = Ahora;
+            if (fechaHora <= ahora) return false;
+            var max = ahora.AddDays(365);
+            return fechaHora <= max;
+        }
+
+        public bool MotivoValido(string? motivo)
+        {
+            if (string.IsNullOrWhiteSpace(motivo)) return false;
+            var n = motivo.Trim();
+            return n.Length >= 3 && n.Length <= 200
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @".*\p{L}.*");
+        }
+
         public bool DentroDeHorario(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos)
         {
+            var inicioPermitido = new TimeOnly(6, 0);
+            var finPermitido = new TimeOnly(22, 0);
             var horaFin = hora.AddMinutes(duracionMinutos);
+
+            if (hora < inicioPermitido || horaFin > finPermitido || horaFin < hora) return false;
+
             var dia = fecha.DayOfWeek;
 
             return _context.horariosOdontologo.Any(h =>

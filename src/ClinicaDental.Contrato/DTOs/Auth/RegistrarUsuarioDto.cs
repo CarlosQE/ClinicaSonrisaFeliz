@@ -7,14 +7,14 @@ namespace ClinicaDental.Contrato.DTOs.Auth
     public class RegistrarUsuarioDto
     {
         [Required(ErrorMessage = "El nombre de usuario es obligatorio.")]
-        [MinLength(4, ErrorMessage = "El nombre de usuario debe tener al menos 4 caracteres.")]
-        [MaxLength(50, ErrorMessage = "El nombre de usuario no puede tener más de 50 caracteres.")]
-        [RegularExpression(@"^[a-zA-Z0-9._-]+$", ErrorMessage = "Solo letras, números, punto, guion y guion bajo (sin espacios).")]
+        [StringLength(30, MinimumLength = 3, ErrorMessage = "El nombre de usuario debe tener entre 3 y 30 caracteres.")]
+        [RegularExpression(@"^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$", ErrorMessage = "Debe contener al menos una letra; solo letras, números, punto, guion y guion bajo (sin espacios).")]
         [Display(Name = "Nombre de usuario")]
         public string NombreUsuario { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El nombre completo es obligatorio.")]
-        [MaxLength(120, ErrorMessage = "El nombre completo no puede tener más de 120 caracteres.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "El nombre completo debe tener entre 2 y 50 caracteres.")]
+        [RegularExpression(@"^\p{L}+([ '\-]\p{L}+)*$", ErrorMessage = "El nombre completo solo puede contener letras, espacios, apóstrofe o guion.")]
         [Display(Name = "Nombre completo")]
         public string NombreCompleto { get; set; } = string.Empty;
 

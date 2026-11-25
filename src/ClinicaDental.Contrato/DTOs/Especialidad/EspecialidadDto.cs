@@ -6,11 +6,12 @@ namespace ClinicaDental.Contrato.DTOs.Especialidad
     public class EspecialidadDto
     {
         [Required(ErrorMessage = "El nombre de la especialidad es obligatorio.")]
-        [MaxLength(80, ErrorMessage = "El nombre no puede tener más de 80 caracteres.")]
+        [StringLength(60, MinimumLength = 3, ErrorMessage = "El nombre debe tener entre 3 y 60 caracteres.")]
+        [RegularExpression(@"^[\p{L} \-]+$", ErrorMessage = "El nombre solo puede contener letras, espacios y guion.")]
         [Display(Name = "Nombre")]
         public string Nombre { get; set; } = string.Empty;
 
-        [MaxLength(250, ErrorMessage = "La descripción no puede tener más de 250 caracteres.")]
+        [StringLength(200, ErrorMessage = "La descripción no puede tener más de 200 caracteres.")]
         [Display(Name = "Descripción")]
         public string? Descripcion { get; set; }
     }

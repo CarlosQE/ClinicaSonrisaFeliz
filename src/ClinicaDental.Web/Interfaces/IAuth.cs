@@ -23,6 +23,8 @@ namespace ClinicaDental.Web.Interfaces
 
         bool ExisteUsuario(Guid id);
         bool NombreUsuarioRepetido(string nombreUsuario);
+        bool NombreUsuarioValido(string nombreUsuario);
+        bool NombreCompletoValido(string nombreCompleto);
         bool RolValido(string rol);
         bool ContrasenaSegura(string contrasena);
         bool ContrasenaCorrecta(Guid id, string contrasena);

@@ -27,6 +27,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}", Name = "ObtenerEspecialidadPorId")]
         public IActionResult Get(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var especialidad = _especialidadServicio.ObtenerPorId(id);
 
             if (especialidad == null)
@@ -40,25 +41,24 @@ namespace ClinicaDental.Web.Controllers
         [HttpPost(Name = "RegistrarEspecialidad")]
         public IActionResult Post([FromBody] EspecialidadDto especialidadDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (especialidadDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (!_especialidadServicio.NombreValido(especialidadDto.Nombre))
-            {
-                return BadRequest("El nombre de la especialidad es obligatorio.");
-            }
-
+                return BadRequest("El nombre debe tener entre 3 y 60 caracteres, solo letras, espacios y guion.");
+            if (!_especialidadServicio.DescripcionValida(especialidadDto.Descripcion))
+                return BadRequest("La descripción no puede tener más de 200 caracteres ni caracteres de control.");
             if (_especialidadServicio.NombreRepetido(especialidadDto.Nombre))
-            {
                 return BadRequest("La especialidad ya está registrada.");
-            }
 
             try
             {
                 var nueva = _especialidadServicio.Registrar(especialidadDto);
                 return CreatedAtAction(nameof(Get), new { id = nueva.Id }, nueva);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo registrar la especialidad por un conflicto de datos.");
             }
             catch (Exception)
             {
@@ -69,30 +69,27 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("{id:guid}", Name = "ActualizarEspecialidad")]
         public IActionResult Put(Guid id, [FromBody] EspecialidadDto especialidadDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (especialidadDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (_especialidadServicio.ObtenerPorId(id) == null)
-            {
                 return NotFound($"No se encontró la especialidad con el id: {id}");
-            }
-
             if (!_especialidadServicio.NombreValido(especialidadDto.Nombre))
-            {
-                return BadRequest("El nombre de la especialidad es obligatorio.");
-            }
-
+                return BadRequest("El nombre debe tener entre 3 y 60 caracteres, solo letras, espacios y guion.");
+            if (!_especialidadServicio.DescripcionValida(especialidadDto.Descripcion))
+                return BadRequest("La descripción no puede tener más de 200 caracteres ni caracteres de control.");
             if (_especialidadServicio.NombreRepetido(especialidadDto.Nombre, id))
-            {
                 return BadRequest("La especialidad ya está registrada.");
-            }
 
             try
             {
                 var actualizada = _especialidadServicio.Actualizar(id, especialidadDto);
                 return Ok(actualizada);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo actualizar la especialidad por un conflicto de datos.");
             }
             catch (Exception)
             {
@@ -103,6 +100,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpDelete("{id:guid}", Name = "EliminarEspecialidad")]
         public IActionResult Delete(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             if (_especialidadServicio.ObtenerPorId(id) == null)
             {
                 return NotFound($"No se encontró la especialidad con el id: {id}");

@@ -205,6 +205,13 @@ namespace ClinicaDental.Web.Services
             return monto > 0 && monto <= 1000000m && decimal.Round(monto, 2) == monto;
         }
 
+        public bool ObservacionValida(string? observacion)
+        {
+            if (string.IsNullOrWhiteSpace(observacion)) return true;
+            var n = observacion.Trim();
+            return n.Length <= 250 && !n.Any(char.IsControl);
+        }
+
         public bool MetodoValido(MetodoPago metodo)
         {
             return Enum.IsDefined(metodo);

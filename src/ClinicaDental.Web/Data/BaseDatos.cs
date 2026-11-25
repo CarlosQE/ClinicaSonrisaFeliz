@@ -25,7 +25,6 @@ namespace ClinicaDental.Web.Data
                 fk.DeleteBehavior = DeleteBehavior.Restrict;
             }
 
-            DatosIniciales.Sembrar(modelBuilder);
         }
     }
 }

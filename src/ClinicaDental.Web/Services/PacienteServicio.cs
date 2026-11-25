@@ -167,9 +167,59 @@ namespace ClinicaDental.Web.Services
                 && fechaNacimiento != default;
         }
 
+        public bool NombreValido(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre)) return false;
+            var n = nombre.Trim();
+            return n.Length >= 2 && n.Length <= 50
+                && !TieneCaracteresDeControl(n)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\p{L}+([ '\-]\p{L}+)*$");
+        }
+
+        public bool CiValido(string ci)
+        {
+            if (string.IsNullOrWhiteSpace(ci)) return false;
+            var n = ci.Trim();
+            return !TieneCaracteresDeControl(n)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\d{5,10}(-[A-Za-z0-9]{1,2})?$");
+        }
+
+        public bool TelefonoValido(string telefono)
+        {
+            if (string.IsNullOrWhiteSpace(telefono)) return false;
+            var n = telefono.Trim();
+            return !TieneCaracteresDeControl(n)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\+?\d{7,15}$");
+        }
+
+        public bool EmailValido(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return true;
+            var n = email.Trim();
+            if (n.Length > 100 || TieneCaracteresDeControl(n)) return false;
+            return System.Text.RegularExpressions.Regex.IsMatch(n, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+        }
+
+        public bool DireccionValida(string? direccion)
+        {
+            if (string.IsNullOrWhiteSpace(direccion)) return true;
+            var n = direccion.Trim();
+            return n.Length <= 150 && !TieneCaracteresDeControl(n);
+        }
+
         public bool FechaNacimientoValida(DateOnly fechaNacimiento)
         {
-            return fechaNacimiento <= DateOnly.FromDateTime(Ahora);
+            var hoy = DateOnly.FromDateTime(Ahora);
+            if (fechaNacimiento > hoy) return false;
+            if (fechaNacimiento < new DateOnly(1900, 1, 1)) return false;
+            var edad = hoy.Year - fechaNacimiento.Year;
+            if (fechaNacimiento > hoy.AddYears(-edad)) edad--;
+            return edad <= 120;
+        }
+
+        private static bool TieneCaracteresDeControl(string valor)
+        {
+            return valor.Any(char.IsControl);
         }
 
         public bool ExistePaciente(Guid id)

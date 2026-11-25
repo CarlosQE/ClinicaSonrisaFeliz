@@ -12,6 +12,7 @@ namespace ClinicaDental.Web.Interfaces
         void Eliminar(Guid id);
 
         bool NombreValido(string nombre);
+        bool DescripcionValida(string? descripcion);
         bool NombreRepetido(string nombre, Guid? excluirId = null);
         bool TieneOdontologos(Guid idEspecialidad);
     }

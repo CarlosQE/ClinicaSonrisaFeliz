@@ -20,22 +20,22 @@ else if (!NoEncontrado)
         <div class="formulario-seccion"><span class="ms">badge</span>Datos personales</div>
         <div class="row g-3">
             <div class="col-md-6 form-floating">
-                <InputText id="nombres" class="form-control" @bind-Value="_paciente.Nombres" placeholder="Nombres" autocomplete="given-name" />
+                <InputText id="nombres" class="form-control" @bind-Value="_paciente.Nombres" placeholder="Nombres" autocomplete="given-name" maxlength="50" />
                 <label for="nombres">Nombres *</label>
                 <ValidationMessage For="() => _paciente.Nombres" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="apellidos" class="form-control" @bind-Value="_paciente.Apellidos" placeholder="Apellidos" autocomplete="family-name" />
+                <InputText id="apellidos" class="form-control" @bind-Value="_paciente.Apellidos" placeholder="Apellidos" autocomplete="family-name" maxlength="50" />
                 <label for="apellidos">Apellidos *</label>
                 <ValidationMessage For="() => _paciente.Apellidos" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="ci" class="form-control" @bind-Value="_paciente.CI" placeholder="CI" />
+                <InputText id="ci" class="form-control" @bind-Value="_paciente.CI" placeholder="CI" maxlength="13" />
                 <label for="ci">Carnet de identidad *</label>
                 <ValidationMessage For="() => _paciente.CI" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputDate id="nacimiento" class="form-control" @bind-Value="_paciente.FechaNacimiento" max="@Hoy.ToString("yyyy-MM-dd")" />
+                <InputDate id="nacimiento" class="form-control" @bind-Value="_paciente.FechaNacimiento" min="1900-01-01" max="@Hoy.ToString("yyyy-MM-dd")" />
                 <label for="nacimiento">Fecha de nacimiento *</label>
                 <ValidationMessage For="() => _paciente.FechaNacimiento" />
             </div>
@@ -44,17 +44,17 @@ else if (!NoEncontrado)
         <div class="formulario-seccion mt-4"><span class="ms">contact_phone</span>Contacto</div>
         <div class="row g-3">
             <div class="col-md-6 form-floating">
-                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_paciente.Telefono" placeholder="Teléfono" autocomplete="tel" />
+                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_paciente.Telefono" placeholder="Teléfono" autocomplete="tel" maxlength="16" />
                 <label for="telefono">Teléfono *</label>
                 <ValidationMessage For="() => _paciente.Telefono" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="email" type="email" class="form-control" @bind-Value="_paciente.Email" placeholder="Correo" autocomplete="email" />
+                <InputText id="email" type="email" class="form-control" @bind-Value="_paciente.Email" placeholder="Correo" autocomplete="email" maxlength="100" />
                 <label for="email">Correo electrónico</label>
                 <ValidationMessage For="() => _paciente.Email" />
             </div>
             <div class="col-12 form-floating">
-                <InputText id="direccion" class="form-control" @bind-Value="_paciente.Direccion" placeholder="Dirección" autocomplete="street-address" />
+                <InputText id="direccion" class="form-control" @bind-Value="_paciente.Direccion" placeholder="Dirección" autocomplete="street-address" maxlength="150" />
                 <label for="direccion">Dirección</label>
                 <ValidationMessage For="() => _paciente.Direccion" />
             </div>

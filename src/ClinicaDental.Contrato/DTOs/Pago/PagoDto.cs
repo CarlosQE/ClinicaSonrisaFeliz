@@ -16,7 +16,7 @@ namespace ClinicaDental.Contrato.DTOs.Pago
         [Display(Name = "Método de pago")]
         public MetodoPago Metodo { get; set; } = MetodoPago.Efectivo;
 
-        [MaxLength(250, ErrorMessage = "La observación no puede tener más de 250 caracteres")]
+        [StringLength(250, ErrorMessage = "La observación no puede tener más de 250 caracteres")]
         [Display(Name = "Observación")]
         public string? Observacion { get; set; }
     }

@@ -165,10 +165,29 @@ namespace ClinicaDental.Web.Services
             return _context.usuarios.Any(u => u.NombreUsuario == nombre);
         }
 
-        public bool RolValido(string rol) => Roles.Todos.Contains(rol);
+        public bool NombreUsuarioValido(string nombreUsuario)
+        {
+            if (string.IsNullOrWhiteSpace(nombreUsuario)) return false;
+            var n = nombreUsuario.Trim();
+            return n.Length >= 3 && n.Length <= 30
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^(?=.*[a-zA-Z])[a-zA-Z0-9._-]+$");
+        }
+
+        public bool NombreCompletoValido(string nombreCompleto)
+        {
+            if (string.IsNullOrWhiteSpace(nombreCompleto)) return false;
+            var n = nombreCompleto.Trim();
+            return n.Length >= 2 && n.Length <= 50
+                && !n.Any(char.IsControl)
+                && System.Text.RegularExpressions.Regex.IsMatch(n, @"^\p{L}+([ '\-]\p{L}+)*$");
+        }
+
+        public bool RolValido(string rol) => !string.IsNullOrWhiteSpace(rol) && Roles.Todos.Contains(rol);
 
         public bool ContrasenaSegura(string contrasena)
         {
+            if (string.IsNullOrWhiteSpace(contrasena)) return false;
             return contrasena.Length >= 8
                 && contrasena.Any(char.IsUpper)
                 && contrasena.Any(char.IsLower)

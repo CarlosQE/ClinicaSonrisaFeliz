@@ -30,10 +30,8 @@ namespace ClinicaDental.Web.Controllers
         [HttpPost("login", Name = "IniciarSesion")]
         public IActionResult Login([FromBody] LoginDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (dto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var (resultado, respuesta) = _authServicio.IniciarSesion(dto);
 
@@ -60,10 +58,8 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("contrasena", Name = "CambiarContrasena")]
         public IActionResult CambiarContrasena([FromBody] CambiarContrasenaDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (dto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (!_authServicio.ContrasenaCorrecta(IdUsuarioActual, dto.ContrasenaActual))
             {
@@ -102,30 +98,28 @@ namespace ClinicaDental.Web.Controllers
         [HttpPost("usuarios", Name = "RegistrarUsuario")]
         public IActionResult PostUsuario([FromBody] RegistrarUsuarioDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (dto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            if (!_authServicio.NombreUsuarioValido(dto.NombreUsuario))
+                return BadRequest("El nombre de usuario debe tener entre 3 y 30 caracteres, contener al menos una letra y solo letras, números, punto, guion o guion bajo.");
+            if (!_authServicio.NombreCompletoValido(dto.NombreCompleto))
+                return BadRequest("El nombre completo debe tener entre 2 y 50 caracteres, solo letras, espacios, apóstrofe o guion.");
             if (!_authServicio.RolValido(dto.Rol))
-            {
                 return BadRequest($"El rol no es válido ({string.Join(", ", Roles.Todos)}).");
-            }
-
             if (!_authServicio.ContrasenaSegura(dto.Contrasena))
-            {
                 return BadRequest("La contraseña debe tener al menos 8 caracteres, con mayúscula, minúscula, número y símbolo.");
-            }
-
             if (_authServicio.NombreUsuarioRepetido(dto.NombreUsuario))
-            {
                 return BadRequest("El nombre de usuario ya está registrado.");
-            }
 
             try
             {
                 var nuevo = _authServicio.Registrar(dto);
                 return CreatedAtAction(nameof(Yo), new { }, nuevo);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo registrar el usuario por un conflicto de datos.");
             }
             catch (Exception)
             {
@@ -137,10 +131,10 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("usuarios/{id:guid}/estado", Name = "CambiarEstadoUsuario")]
         public IActionResult CambiarEstado(Guid id, [FromBody] CambiarEstadoUsuarioDto dto)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (dto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
             if (!ModelState.IsValid || !dto.Activo.HasValue)
-            {
                 return BadRequest("Debe indicar si el usuario queda activo o inactivo.");
-            }
 
             if (!_authServicio.ExisteUsuario(id))
             {

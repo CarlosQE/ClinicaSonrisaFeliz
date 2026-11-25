@@ -100,6 +100,18 @@ builder.Services.AddScoped<IPago, PagoServicio>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var contexto = scope.ServiceProvider.GetRequiredService<BaseDatos>();
+    contexto.Database.Migrate();
+
+    if (builder.Configuration.GetValue("Siembra:Habilitada", true))
+    {
+        var cantidadExtra = builder.Configuration.GetValue("Siembra:CantidadExtra", 1000);
+        DatosIniciales.Sembrar(contexto, cantidadExtra);
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

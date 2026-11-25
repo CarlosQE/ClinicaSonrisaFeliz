@@ -80,12 +80,12 @@ else if (_odontologo is { } o)
                     </div>
                     <div class="row g-2">
                         <div class="col-6 form-floating">
-                            <InputDate Type="InputDateType.Time" id="desde" class="form-control" @bind-Value="_nueva.HoraInicio" step="900" />
+                            <InputDate Type="InputDateType.Time" id="desde" class="form-control" @bind-Value="_nueva.HoraInicio" step="900" min="06:00" max="22:00" />
                             <label for="desde">Desde</label>
                             <ValidationMessage For="() => _nueva.HoraInicio" />
                         </div>
                         <div class="col-6 form-floating">
-                            <InputDate Type="InputDateType.Time" id="hasta" class="form-control" @bind-Value="_nueva.HoraFin" step="900" />
+                            <InputDate Type="InputDateType.Time" id="hasta" class="form-control" @bind-Value="_nueva.HoraFin" step="900" min="06:00" max="22:00" />
                             <label for="hasta">Hasta</label>
                             <ValidationMessage For="() => _nueva.HoraFin" />
                         </div>

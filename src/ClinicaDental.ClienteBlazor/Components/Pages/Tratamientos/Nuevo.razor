@@ -73,16 +73,16 @@ else
         <div class="formulario-seccion mt-4"><span class="ms">receipt</span>Detalle</div>
         <div class="row g-3">
             <div class="col-md-6 form-floating">
-                <InputDate id="fecha" class="form-control" @bind-Value="_tratamiento.Fecha" max="@Hoy.ToString("yyyy-MM-dd")" />
+                <InputDate id="fecha" class="form-control" @bind-Value="_tratamiento.Fecha" min="2000-01-01" max="@Hoy.ToString("yyyy-MM-dd")" />
                 <label for="fecha">Fecha</label>
             </div>
             <div class="col-md-6 form-floating">
-                <InputNumber id="costo" class="form-control" @bind-Value="_tratamiento.Costo" step="0.01" min="0.01" placeholder="Costo" />
+                <InputNumber id="costo" class="form-control" @bind-Value="_tratamiento.Costo" step="0.01" min="0.01" max="100000" placeholder="Costo" />
                 <label for="costo">Costo (Bs) *</label>
                 <ValidationMessage For="() => _tratamiento.Costo" />
             </div>
             <div class="col-12 form-floating">
-                <InputTextArea id="observaciones" class="form-control alto-120" @bind-Value="_tratamiento.Observaciones" placeholder="Observaciones" />
+                <InputTextArea id="observaciones" class="form-control alto-120" @bind-Value="_tratamiento.Observaciones" placeholder="Observaciones" maxlength="500" />
                 <label for="observaciones">Observaciones clínicas</label>
                 <ValidationMessage For="() => _tratamiento.Observaciones" />
             </div>

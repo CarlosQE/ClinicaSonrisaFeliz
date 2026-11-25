@@ -16,6 +16,8 @@ namespace ClinicaDental.Web.Interfaces
         bool OdontologoActivo(Guid idOdontologo);
         bool DuracionValida(int minutos);
         bool FechaFutura(DateOnly fecha, TimeOnly hora);
+        bool FechaDentroDeRango(DateOnly fecha, TimeOnly hora);
+        bool MotivoValido(string? motivo);
         bool DentroDeHorario(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos);
         bool OdontologoDisponible(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null);
         bool PacienteDisponible(Guid idPaciente, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null);

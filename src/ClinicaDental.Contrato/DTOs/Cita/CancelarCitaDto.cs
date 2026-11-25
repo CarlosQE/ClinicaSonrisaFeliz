@@ -6,7 +6,8 @@ namespace ClinicaDental.Contrato.DTOs.Cita
     public class CancelarCitaDto
     {
         [Required(ErrorMessage = "El motivo de la cancelación es requerido")]
-        [MaxLength(250, ErrorMessage = "El motivo no puede tener más de 250 caracteres")]
+        [StringLength(200, MinimumLength = 3, ErrorMessage = "El motivo debe tener entre 3 y 200 caracteres")]
+        [RegularExpression(@"^(?=.*\p{L}).+$", ErrorMessage = "El motivo debe contener al menos una letra.")]
         [Display(Name = "Motivo de la cancelación")]
         public string Motivo { get; set; } = string.Empty;
     }

@@ -19,6 +19,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet(Name = "ListarPagos")]
         public IActionResult Get([FromQuery] Guid? idPaciente)
         {
+            if (idPaciente.HasValue && idPaciente.Value == Guid.Empty) return BadRequest("El id del paciente no es válido.");
             if (idPaciente.HasValue && !_pagoServicio.ExistePaciente(idPaciente.Value))
             {
                 return BadRequest("El paciente indicado no existe");
@@ -31,17 +32,17 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}", Name = "ObtenerPagoPorId")]
         public IActionResult Get(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var pago = _pagoServicio.ObtenerPorId(id);
             if (pago == null)
-            {
                 return NotFound($"No se encontró el pago con el id: {id}");
-            }
             return Ok(pago);
         }
 
         [HttpGet("deudas", Name = "ConsultarDeudasPendientes")]
         public IActionResult GetDeudas([FromQuery] Guid? idPaciente)
         {
+            if (idPaciente.HasValue && idPaciente.Value == Guid.Empty) return BadRequest("El id del paciente no es válido.");
             if (idPaciente.HasValue && !_pagoServicio.ExistePaciente(idPaciente.Value))
             {
                 return BadRequest("El paciente indicado no existe");
@@ -54,10 +55,9 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("tratamiento/{idTratamiento:guid}/saldo", Name = "ConsultarSaldoTratamiento")]
         public IActionResult GetSaldo(Guid idTratamiento)
         {
+            if (idTratamiento == Guid.Empty) return BadRequest("El id del tratamiento no es válido.");
             if (!_pagoServicio.ExisteTratamiento(idTratamiento))
-            {
                 return NotFound($"No se encontró el tratamiento con el id: {idTratamiento}");
-            }
 
             var saldo = _pagoServicio.ObtenerSaldoPendiente(idTratamiento);
             return Ok(new { idTratamiento, saldoPendiente = saldo });
@@ -66,52 +66,44 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}/comprobante", Name = "EmitirComprobante")]
         public IActionResult GetComprobante(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var comprobante = _pagoServicio.ObtenerComprobante(id);
             if (comprobante == null)
-            {
                 return NotFound($"No se encontró el pago con el id: {id}");
-            }
             return Ok(comprobante);
         }
 
         [HttpPost(Name = "RegistrarPago")]
         public IActionResult Post([FromBody] PagoDto pagoDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (pagoDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            if (pagoDto.IdTratamiento == null || pagoDto.IdTratamiento == Guid.Empty)
+                return BadRequest("El id del tratamiento no es válido.");
             if (!_pagoServicio.MontoValido(pagoDto.Monto))
-            {
-                return BadRequest("El monto debe ser mayor a 0, no mayor a 1.000.000 y tener como máximo 2 decimales");
-            }
-
+                return BadRequest("El monto debe ser mayor a 0, no mayor a 1.000.000 y tener como máximo 2 decimales.");
             if (!_pagoServicio.MetodoValido(pagoDto.Metodo))
-            {
-                return BadRequest("El método de pago no es válido (0 = Efectivo, 1 = Tarjeta, 2 = Transferencia, 3 = QR)");
-            }
-
-            if (!_pagoServicio.ExisteTratamiento(pagoDto.IdTratamiento!.Value))
-            {
+                return BadRequest("El método de pago no es válido (0 = Efectivo, 1 = Tarjeta, 2 = Transferencia, 3 = QR).");
+            if (!_pagoServicio.ObservacionValida(pagoDto.Observacion))
+                return BadRequest("La observación no puede tener más de 250 caracteres ni caracteres de control.");
+            if (!_pagoServicio.ExisteTratamiento(pagoDto.IdTratamiento.Value))
                 return BadRequest("El tratamiento seleccionado no existe");
-            }
 
-            var saldo = _pagoServicio.ObtenerSaldoPendiente(pagoDto.IdTratamiento!.Value);
+            var saldo = _pagoServicio.ObtenerSaldoPendiente(pagoDto.IdTratamiento.Value);
             if (saldo <= 0)
-            {
                 return BadRequest("El tratamiento ya fue pagado por completo");
-            }
-
-            if (!_pagoServicio.MontoNoExcedeSaldo(pagoDto.IdTratamiento!.Value, pagoDto.Monto))
-            {
+            if (!_pagoServicio.MontoNoExcedeSaldo(pagoDto.IdTratamiento.Value, pagoDto.Monto))
                 return BadRequest($"El monto excede el saldo pendiente del tratamiento ({saldo} Bs)");
-            }
 
             try
             {
                 var nuevoPago = _pagoServicio.registrar(pagoDto);
                 return CreatedAtAction(nameof(Get), new { id = nuevoPago.Id }, nuevoPago);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo registrar el pago por un conflicto de datos.");
             }
             catch (Exception ex)
             {

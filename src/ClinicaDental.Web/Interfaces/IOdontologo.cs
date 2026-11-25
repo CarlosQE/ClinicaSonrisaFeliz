@@ -12,6 +12,10 @@ namespace ClinicaDental.Web.Interfaces
         OdontologoRespuesta CambiarEstado(Guid id, bool activo);
 
         bool DatosObligatoriosValidos(string nombres, string apellidos, string matricula, string telefono);
+        bool NombreValido(string nombre);
+        bool MatriculaValida(string matricula);
+        bool TelefonoValido(string telefono);
+        bool EmailValido(string? email);
         bool ExisteOdontologo(Guid id);
         bool MatriculaRepetida(string matricula, Guid? excluirId = null);
         bool ExisteEspecialidad(Guid idEspecialidad);

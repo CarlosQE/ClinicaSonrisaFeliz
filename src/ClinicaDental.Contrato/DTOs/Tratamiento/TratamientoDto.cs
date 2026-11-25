@@ -27,7 +27,7 @@ namespace ClinicaDental.Contrato.DTOs.Tratamiento
         [Display(Name = "Costo (Bs)")]
         public decimal Costo { get; set; }
 
-        [MaxLength(1000, ErrorMessage = "Las observaciones no pueden tener más de 1000 caracteres.")]
+        [StringLength(500, ErrorMessage = "Las observaciones no pueden tener más de 500 caracteres.")]
         [Display(Name = "Observaciones")]
         public string? Observaciones { get; set; }
     }

@@ -16,5 +16,6 @@ namespace ClinicaDental.Web.Interfaces
         bool MontoValido(decimal monto);
         bool MetodoValido(MetodoPago metodo);
         bool MontoNoExcedeSaldo(Guid idTratamiento, decimal monto);
+        bool ObservacionValida(string? observacion);
     }
 }

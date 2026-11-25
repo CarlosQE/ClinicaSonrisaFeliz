@@ -20,8 +20,9 @@ namespace ClinicaDental.Web.Interfaces
         bool CitaNoCancelada(Guid idCita);
         bool TipoValido(TipoTratamiento tipo);
         bool CostoValido(decimal costo);
-        bool FechaValida(DateOnly fecha);
+        bool FechaValida(DateOnly fecha, Guid idPaciente);
         bool ObservacionesValidas(string? observaciones);
+        bool ObservacionesOpcionalesValidas(string? observaciones);
         bool TienePagos(Guid idTratamiento);
     }
 }

@@ -46,6 +46,26 @@ namespace ClinicaDental.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "usuarios",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NombreUsuario = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    NombreCompleto = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
+                    ContrasenaHash = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Rol = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Activo = table.Column<bool>(type: "bit", nullable: false),
+                    IntentosFallidos = table.Column<int>(type: "int", nullable: false),
+                    BloqueadoHasta = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UltimoAcceso = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_usuarios", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "odontologos",
                 columns: table => new
                 {
@@ -76,7 +96,8 @@ namespace ClinicaDental.Web.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     IdPaciente = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     IdOdontologo = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FechaHora = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Fecha = table.Column<DateOnly>(type: "date", nullable: false),
+                    Hora = table.Column<TimeOnly>(type: "time", nullable: false),
                     DuracionMinutos = table.Column<int>(type: "int", nullable: false),
                     Motivo = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     Estado = table.Column<int>(type: "int", nullable: false),
@@ -204,6 +225,11 @@ namespace ClinicaDental.Web.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "usuarios",
+                columns: new[] { "Id", "Activo", "BloqueadoHasta", "ContrasenaHash", "FechaRegistro", "IntentosFallidos", "NombreCompleto", "NombreUsuario", "Rol", "UltimoAcceso" },
+                values: new object[] { new Guid("70000000-0000-0000-0000-000000000001"), true, null, "PBKDF2$100000$K4v0wtZSoSBERCBGlB7fhQ==$eTwO89QHlPU+KfGKeEJ1AfLBQOmxtKmSps1har/sJ6A=", new DateTime(2026, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 0, "Administrador del sistema", "admin", "Administrador", null });
+
+            migrationBuilder.InsertData(
                 table: "odontologos",
                 columns: new[] { "Id", "Activo", "Apellidos", "Email", "IdEspecialidad", "Matricula", "Nombres", "Telefono" },
                 values: new object[,]
@@ -212,6 +238,20 @@ namespace ClinicaDental.Web.Migrations
                     { new Guid("20000000-0000-0000-0000-000000000002"), true, "Camacho Ortiz", "valeria.camacho@sonrisafeliz.bo", new Guid("10000000-0000-0000-0000-000000000002"), "MP-0002", "Valeria", "70000002" },
                     { new Guid("20000000-0000-0000-0000-000000000003"), true, "Gutiérrez Soria", "marcelo.gutierrez@sonrisafeliz.bo", new Guid("10000000-0000-0000-0000-000000000003"), "MP-0003", "Marcelo", "70000003" },
                     { new Guid("20000000-0000-0000-0000-000000000004"), false, "Lozano Rojas", null, new Guid("10000000-0000-0000-0000-000000000004"), "MP-0004", "Patricia", "70000004" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "citas",
+                columns: new[] { "Id", "DuracionMinutos", "Estado", "Fecha", "FechaRegistro", "Hora", "IdOdontologo", "IdPaciente", "Motivo", "MotivoCancelacion" },
+                values: new object[,]
+                {
+                    { new Guid("80000000-0000-0000-0000-000000000001"), 30, 3, new DateOnly(2026, 11, 5), new DateTime(2026, 11, 3, 10, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(9, 0, 0), new Guid("20000000-0000-0000-0000-000000000001"), new Guid("30000000-0000-0000-0000-000000000001"), "Limpieza dental", null },
+                    { new Guid("80000000-0000-0000-0000-000000000002"), 60, 3, new DateOnly(2026, 11, 6), new DateTime(2026, 11, 4, 11, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(10, 0, 0), new Guid("20000000-0000-0000-0000-000000000003"), new Guid("30000000-0000-0000-0000-000000000002"), "Dolor de muela, posible conducto", null },
+                    { new Guid("80000000-0000-0000-0000-000000000003"), 30, 2, new DateOnly(2026, 11, 10), new DateTime(2026, 11, 5, 9, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(14, 0, 0), new Guid("20000000-0000-0000-0000-000000000003"), new Guid("30000000-0000-0000-0000-000000000004"), "Control de endodoncia", "El paciente no pudo asistir" },
+                    { new Guid("80000000-0000-0000-0000-000000000004"), 30, 0, new DateOnly(2026, 12, 1), new DateTime(2026, 11, 20, 15, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(10, 0, 0), new Guid("20000000-0000-0000-0000-000000000002"), new Guid("30000000-0000-0000-0000-000000000003"), "Control de ortodoncia", null },
+                    { new Guid("80000000-0000-0000-0000-000000000005"), 30, 0, new DateOnly(2026, 12, 2), new DateTime(2026, 11, 20, 16, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(15, 0, 0), new Guid("20000000-0000-0000-0000-000000000001"), new Guid("30000000-0000-0000-0000-000000000004"), "Revisión general", null },
+                    { new Guid("80000000-0000-0000-0000-000000000006"), 30, 0, new DateOnly(2026, 12, 3), new DateTime(2026, 11, 21, 10, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(9, 30, 0), new Guid("20000000-0000-0000-0000-000000000002"), new Guid("30000000-0000-0000-0000-000000000005"), "Primera consulta de ortodoncia", null },
+                    { new Guid("80000000-0000-0000-0000-000000000007"), 30, 1, new DateOnly(2026, 12, 4), new DateTime(2026, 11, 21, 12, 0, 0, 0, DateTimeKind.Unspecified), new TimeOnly(16, 0, 0), new Guid("20000000-0000-0000-0000-000000000001"), new Guid("30000000-0000-0000-0000-000000000003"), "Limpieza dental", null }
                 });
 
             migrationBuilder.InsertData(
@@ -261,15 +301,29 @@ namespace ClinicaDental.Web.Migrations
                     { new Guid("40000000-0000-0000-0000-000000000040"), 5, new TimeOnly(18, 0, 0), new TimeOnly(14, 0, 0), new Guid("20000000-0000-0000-0000-000000000004") }
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_citas_IdOdontologo_FechaHora",
-                table: "citas",
-                columns: new[] { "IdOdontologo", "FechaHora" });
+            migrationBuilder.InsertData(
+                table: "tratamientos",
+                columns: new[] { "Id", "Costo", "Fecha", "IdCita", "IdOdontologo", "IdPaciente", "Observaciones", "Tipo" },
+                values: new object[,]
+                {
+                    { new Guid("50000000-0000-0000-0000-000000000001"), 150.00m, new DateOnly(2026, 11, 5), new Guid("80000000-0000-0000-0000-000000000001"), new Guid("20000000-0000-0000-0000-000000000001"), new Guid("30000000-0000-0000-0000-000000000001"), "Limpieza y profilaxis completa", 0 },
+                    { new Guid("50000000-0000-0000-0000-000000000002"), 800.00m, new DateOnly(2026, 11, 6), new Guid("80000000-0000-0000-0000-000000000002"), new Guid("20000000-0000-0000-0000-000000000003"), new Guid("30000000-0000-0000-0000-000000000002"), "Tratamiento de conducto, primera sesión", 2 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "pagos",
+                columns: new[] { "Id", "FechaPago", "IdTratamiento", "Metodo", "Monto", "NumeroComprobante", "Observacion" },
+                values: new object[] { new Guid("60000000-0000-0000-0000-000000000001"), new DateTime(2026, 11, 6, 12, 0, 0, 0, DateTimeKind.Unspecified), new Guid("50000000-0000-0000-0000-000000000002"), 0, 300.00m, "CMP-000001", "Adelanto" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_citas_IdPaciente_FechaHora",
+                name: "IX_citas_IdOdontologo_Fecha_Hora",
                 table: "citas",
-                columns: new[] { "IdPaciente", "FechaHora" });
+                columns: new[] { "IdOdontologo", "Fecha", "Hora" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_citas_IdPaciente_Fecha_Hora",
+                table: "citas",
+                columns: new[] { "IdPaciente", "Fecha", "Hora" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_especialidades_Nombre",
@@ -324,6 +378,12 @@ namespace ClinicaDental.Web.Migrations
                 name: "IX_tratamientos_IdPaciente",
                 table: "tratamientos",
                 column: "IdPaciente");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_usuarios_NombreUsuario",
+                table: "usuarios",
+                column: "NombreUsuario",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -334,6 +394,9 @@ namespace ClinicaDental.Web.Migrations
 
             migrationBuilder.DropTable(
                 name: "pagos");
+
+            migrationBuilder.DropTable(
+                name: "usuarios");
 
             migrationBuilder.DropTable(
                 name: "tratamientos");

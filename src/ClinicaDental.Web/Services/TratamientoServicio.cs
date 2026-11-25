@@ -92,7 +92,7 @@ namespace ClinicaDental.Web.Services
                 Costo = tratamientoDto.Costo,
                 Observaciones = string.IsNullOrWhiteSpace(tratamientoDto.Observaciones)
                     ? null
-                    : tratamientoDto.Observaciones.Trim()
+                    : TratamientoValidaciones.NormalizarTexto(tratamientoDto.Observaciones)
             };
 
             _context.tratamientos.Add(tratamiento);
@@ -105,7 +105,7 @@ namespace ClinicaDental.Web.Services
         {
             var tratamiento = _context.tratamientos.First(t => t.Id == id);
 
-            tratamiento.Observaciones = observaciones.Trim();
+            tratamiento.Observaciones = TratamientoValidaciones.NormalizarTexto(observaciones);
             _context.SaveChanges();
 
             return ObtenerPorId(id)!;
@@ -149,9 +149,26 @@ namespace ClinicaDental.Web.Services
             return _context.citas.Any(c => c.Id == idCita && c.IdPaciente == idPaciente);
         }
 
+        public bool CitaCorrespondeAOdontologo(Guid idCita, Guid idOdontologo)
+        {
+            return _context.citas.Any(c => c.Id == idCita && c.IdOdontologo == idOdontologo);
+        }
+
         public bool CitaNoCancelada(Guid idCita)
         {
             return _context.citas.Any(c => c.Id == idCita && c.Estado != EstadoCita.Cancelada);
+        }
+
+        public bool CitaNoFutura(Guid idCita)
+        {
+            var hoy = DateOnly.FromDateTime(Ahora);
+            return _context.citas.Any(c => c.Id == idCita && c.Fecha <= hoy);
+        }
+
+        public bool FechaCoherenteConCita(DateOnly fechaTratamiento, Guid idCita)
+        {
+            var cita = _context.citas.AsNoTracking().FirstOrDefault(c => c.Id == idCita);
+            return cita == null || fechaTratamiento >= cita.Fecha;
         }
 
         public bool TipoValido(TipoTratamiento tipo)
@@ -161,7 +178,7 @@ namespace ClinicaDental.Web.Services
 
         public bool CostoValido(decimal costo)
         {
-            return costo > 0 && costo <= 100000m && decimal.Round(costo, 2) == costo;
+            return TratamientoValidaciones.EsCostoValido(costo);
         }
 
         public bool FechaValida(DateOnly fecha, Guid idPaciente)
@@ -169,7 +186,7 @@ namespace ClinicaDental.Web.Services
             var hoy = DateOnly.FromDateTime(Ahora);
             if (fecha == default) return false;
             if (fecha > hoy) return false;
-            if (fecha < new DateOnly(2000, 1, 1)) return false;
+            if (fecha < TratamientoValidaciones.FechaMinima) return false;
             var paciente = _context.pacientes.AsNoTracking().FirstOrDefault(p => p.Id == idPaciente);
             if (paciente != null && fecha < paciente.FechaNacimiento) return false;
             return true;
@@ -178,15 +195,39 @@ namespace ClinicaDental.Web.Services
         public bool ObservacionesValidas(string? observaciones)
         {
             if (string.IsNullOrWhiteSpace(observaciones)) return false;
-            var n = observaciones.Trim();
-            return n.Length <= 500 && !n.Any(char.IsControl);
+            if (TratamientoValidaciones.TieneCaracteresProhibidos(observaciones)) return false;
+            var n = TratamientoValidaciones.NormalizarTexto(observaciones);
+            return n.Length >= TratamientoValidaciones.ObservacionesMinimo
+                && n.Length <= TratamientoValidaciones.ObservacionesMaximo;
         }
 
         public bool ObservacionesOpcionalesValidas(string? observaciones)
         {
             if (string.IsNullOrWhiteSpace(observaciones)) return true;
-            var n = observaciones.Trim();
-            return n.Length <= 500 && !n.Any(char.IsControl);
+            if (TratamientoValidaciones.TieneCaracteresProhibidos(observaciones)) return false;
+            var n = TratamientoValidaciones.NormalizarTexto(observaciones);
+            return n.Length >= TratamientoValidaciones.ObservacionesMinimo
+                && n.Length <= TratamientoValidaciones.ObservacionesMaximo;
+        }
+
+        public bool ExisteDuplicado(TratamientoDto tratamientoDto)
+        {
+            if (tratamientoDto.IdPaciente is null || tratamientoDto.IdOdontologo is null) return false;
+
+            var fecha = tratamientoDto.Fecha ?? DateOnly.FromDateTime(Ahora);
+            var idCita = tratamientoDto.IdCita == Guid.Empty ? null : tratamientoDto.IdCita;
+            var obs = string.IsNullOrWhiteSpace(tratamientoDto.Observaciones)
+                ? null
+                : TratamientoValidaciones.NormalizarTexto(tratamientoDto.Observaciones);
+
+            return _context.tratamientos.Any(t =>
+                t.IdPaciente == tratamientoDto.IdPaciente.Value
+                && t.IdOdontologo == tratamientoDto.IdOdontologo.Value
+                && t.IdCita == idCita
+                && t.Tipo == tratamientoDto.Tipo
+                && t.Fecha == fecha
+                && t.Costo == tratamientoDto.Costo
+                && t.Observaciones == obs);
         }
 
         public bool TienePagos(Guid idTratamiento)

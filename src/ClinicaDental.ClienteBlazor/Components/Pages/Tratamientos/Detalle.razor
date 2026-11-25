@@ -47,9 +47,10 @@ else if (_tratamiento is { } t)
                 <EditForm Model="_observaciones" OnValidSubmit="GuardarObservaciones" FormName="observaciones">
                     <DataAnnotationsValidator />
                     <div class="form-floating">
-                        <InputTextArea id="observaciones" class="form-control alto-150" @bind-Value="_observaciones.Observaciones" placeholder="Observaciones" />
+                        <InputTextArea id="observaciones" class="form-control alto-150" @bind-Value="_observaciones.Observaciones" placeholder="Observaciones" maxlength="1000" />
                         <label for="observaciones">Evolución, indicaciones, piezas tratadas…</label>
                         <ValidationMessage For="() => _observaciones.Observaciones" />
+                        <div class="ayuda">Obligatorio. Entre 3 y 1000 caracteres, sin &lt; ni &gt;.</div>
                     </div>
                     <div class="d-flex justify-content-end mt-3">
                         <BotonEnviar Enviando="Enviando" Texto="Guardar observaciones" Clase="btn-tonal" />
@@ -143,6 +144,11 @@ else if (_tratamiento is { } t)
         {
             ErrorFormulario = r.Mensaje;
             return;
+        }
+        if (r.Datos is not null)
+        {
+            _tratamiento = r.Datos;
+            _observaciones.Observaciones = r.Datos.Observaciones ?? string.Empty;
         }
         Notificar.Exito("Observaciones guardadas.");
     }

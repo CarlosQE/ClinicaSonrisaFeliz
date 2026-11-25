@@ -1,5 +1,3 @@
-using Bogus;
-
 using ClinicaDental.Web.Data;
 using ClinicaDental.Web.Models;
 
@@ -18,7 +16,6 @@ public static class HorarioOdontologoFactories
 
         context.Database.SetCommandTimeout(120);
         var extras = Math.Clamp(cantidadExtra, 0, 1000 - CantidadBase);
-        var faker = new Faker("es");
         var lote = new List<HorarioOdontologo>(TamanoLote);
 
         var odontologosBase = new[]
@@ -71,15 +68,22 @@ public static class HorarioOdontologoFactories
             .Select(o => o.Id)
             .ToList();
 
-        // Un solo horario por odontólogo extra y día, así no hay solapes por odontólogo.
-        for (var i = 1; i <= extras; i++)
+        if (odontologosExtras.Count == 0) return;
+
+        // Cada odontólogo extra recorre en orden los 10 espacios posibles (5 días x 2 turnos),
+        // sin repetir ninguno: así nunca hay solapes ni duplicados por odontólogo.
+        var espaciosPorOdontologo = dias.Length * turnos.Length;
+        var total = Math.Min(extras, odontologosExtras.Count * espaciosPorOdontologo);
+
+        for (var i = 0; i < total; i++)
         {
-            var turno = faker.PickRandom(turnos);
+            var ciclo = i / odontologosExtras.Count;
+            var turno = turnos[ciclo / dias.Length];
             lote.Add(new HorarioOdontologo
             {
                 Id = Guid.NewGuid(),
-                IdOdontologo = odontologosExtras[(i - 1) % odontologosExtras.Count],
-                DiaSemana = faker.PickRandom(dias),
+                IdOdontologo = odontologosExtras[i % odontologosExtras.Count],
+                DiaSemana = dias[ciclo % dias.Length],
                 HoraInicio = turno.Inicio,
                 HoraFin = turno.Fin
             });

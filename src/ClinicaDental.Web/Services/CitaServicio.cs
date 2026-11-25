@@ -27,35 +27,119 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
+        private static IEnumerable<CitaRespuesta> Proyectar(IQueryable<Cita> consulta)
+        {
+            return consulta
+                .Select(c => new
+                {
+                    c.Id,
+                    c.IdPaciente,
+                    Paciente = new
+                    {
+                        c.Paciente!.Id,
+                        c.Paciente!.Nombres,
+                        c.Paciente!.Apellidos,
+                        c.Paciente!.CI,
+                        c.Paciente!.FechaNacimiento,
+                        c.Paciente!.Telefono,
+                        c.Paciente!.Email,
+                        c.Paciente!.Direccion,
+                        c.Paciente!.FechaRegistro
+                    },
+                    c.IdOdontologo,
+                    Odontologo = new
+                    {
+                        c.Odontologo!.Id,
+                        c.Odontologo!.Nombres,
+                        c.Odontologo!.Apellidos,
+                        c.Odontologo!.Matricula,
+                        c.Odontologo!.Telefono,
+                        c.Odontologo!.Email,
+                        c.Odontologo!.IdEspecialidad,
+                        c.Odontologo!.Activo,
+                        Especialidad = new
+                        {
+                            c.Odontologo!.Especialidad!.Id,
+                            c.Odontologo!.Especialidad!.Nombre,
+                            c.Odontologo!.Especialidad!.Descripcion
+                        }
+                    },
+                    c.Fecha,
+                    c.Hora,
+                    c.DuracionMinutos,
+                    c.Motivo,
+                    c.Estado,
+                    c.MotivoCancelacion,
+                    c.FechaRegistro
+                })
+                .ToList()
+                .Select(c => new CitaRespuesta
+                {
+                    Id = c.Id,
+                    IdPaciente = c.IdPaciente,
+                    Paciente = new PacienteRespuesta
+                    {
+                        Id = c.Paciente.Id,
+                        Nombres = c.Paciente.Nombres,
+                        Apellidos = c.Paciente.Apellidos,
+                        CI = c.Paciente.CI,
+                        FechaNacimiento = c.Paciente.FechaNacimiento,
+                        Telefono = c.Paciente.Telefono,
+                        Email = c.Paciente.Email,
+                        Direccion = c.Paciente.Direccion,
+                        FechaRegistro = c.Paciente.FechaRegistro,
+                        NombreCompleto = c.Paciente.Nombres + " " + c.Paciente.Apellidos
+                    },
+                    IdOdontologo = c.IdOdontologo,
+                    Odontologo = new OdontologoRespuesta
+                    {
+                        Id = c.Odontologo.Id,
+                        Nombres = c.Odontologo.Nombres,
+                        Apellidos = c.Odontologo.Apellidos,
+                        Matricula = c.Odontologo.Matricula,
+                        Telefono = c.Odontologo.Telefono,
+                        Email = c.Odontologo.Email,
+                        IdEspecialidad = c.Odontologo.IdEspecialidad,
+                        Activo = c.Odontologo.Activo,
+                        NombreCompleto = "Dr(a). " + c.Odontologo.Nombres + " " + c.Odontologo.Apellidos,
+                        Especialidad = new EspecialidadRespuesta
+                        {
+                            Id = c.Odontologo.Especialidad.Id,
+                            Nombre = c.Odontologo.Especialidad.Nombre,
+                            Descripcion = c.Odontologo.Especialidad.Descripcion
+                        },
+                        Horarios = new List<HorarioRespuesta>()
+                    },
+                    Fecha = c.Fecha,
+                    Hora = c.Hora,
+                    DuracionMinutos = c.DuracionMinutos,
+                    Motivo = c.Motivo,
+                    Estado = c.Estado,
+                    MotivoCancelacion = c.MotivoCancelacion,
+                    FechaRegistro = c.FechaRegistro,
+                    HoraFin = c.Hora.AddMinutes(c.DuracionMinutos),
+                    EstaVigente = c.Estado is EstadoCita.Programada or EstadoCita.Reprogramada
+                });
+        }
+
         public IEnumerable<CitaRespuesta> ObtenerTodos()
         {
-            return _context.citas
-                .Include(c => c.Paciente)
-                .Include(c => c.Odontologo)
-                    .ThenInclude(o => o!.Especialidad)
-                .OrderBy(c => c.Fecha).ThenBy(c => c.Hora)
+            return Proyectar(_context.citas
                 .AsNoTracking()
-                .ToList()
-                .Select(Mapear);
+                .OrderBy(c => c.Fecha).ThenBy(c => c.Hora));
         }
 
         public CitaRespuesta? ObtenerPorId(Guid id)
         {
-            var cita = _context.citas
-                .Include(c => c.Paciente)
-                .Include(c => c.Odontologo)
-                    .ThenInclude(o => o!.Especialidad)
+            return Proyectar(_context.citas
                 .AsNoTracking()
-                .FirstOrDefault(c => c.Id == id);
-            return cita == null ? null : Mapear(cita);
+                .Where(c => c.Id == id)).FirstOrDefault();
         }
 
         public IEnumerable<CitaRespuesta> ObtenerAgendaDiaria(DateOnly fecha, Guid? idOdontologo = null, bool incluirCanceladas = false)
         {
             var query = _context.citas
-                .Include(c => c.Paciente)
-                .Include(c => c.Odontologo)
-                    .ThenInclude(o => o!.Especialidad)
+                .AsNoTracking()
                 .Where(c => c.Fecha == fecha);
 
             if (idOdontologo.HasValue)
@@ -68,11 +152,7 @@ namespace ClinicaDental.Web.Services
                 query = query.Where(c => c.Estado != EstadoCita.Cancelada);
             }
 
-            return query
-                .OrderBy(c => c.Hora)
-                .AsNoTracking()
-                .ToList()
-                .Select(Mapear);
+            return Proyectar(query.OrderBy(c => c.Hora));
         }
 
         public CitaRespuesta agendar(CitaDto citaDto)
@@ -224,65 +304,5 @@ namespace ClinicaDental.Web.Services
             });
         }
 
-        private static CitaRespuesta Mapear(Cita c)
-        {
-            return new CitaRespuesta
-            {
-                Id = c.Id,
-                IdPaciente = c.IdPaciente,
-                Paciente = c.Paciente == null ? null : MapearPaciente(c.Paciente),
-                IdOdontologo = c.IdOdontologo,
-                Odontologo = c.Odontologo == null ? null : MapearOdontologo(c.Odontologo),
-                Fecha = c.Fecha,
-                Hora = c.Hora,
-                DuracionMinutos = c.DuracionMinutos,
-                Motivo = c.Motivo,
-                Estado = c.Estado,
-                MotivoCancelacion = c.MotivoCancelacion,
-                FechaRegistro = c.FechaRegistro,
-                HoraFin = c.HoraFin,
-                EstaVigente = c.EstaVigente
-            };
-        }
-
-        private static PacienteRespuesta MapearPaciente(Paciente p)
-        {
-            return new PacienteRespuesta
-            {
-                Id = p.Id,
-                Nombres = p.Nombres,
-                Apellidos = p.Apellidos,
-                CI = p.CI,
-                FechaNacimiento = p.FechaNacimiento,
-                Telefono = p.Telefono,
-                Email = p.Email,
-                Direccion = p.Direccion,
-                FechaRegistro = p.FechaRegistro,
-                NombreCompleto = p.NombreCompleto
-            };
-        }
-
-        private static OdontologoRespuesta MapearOdontologo(Odontologo o)
-        {
-            return new OdontologoRespuesta
-            {
-                Id = o.Id,
-                Nombres = o.Nombres,
-                Apellidos = o.Apellidos,
-                Matricula = o.Matricula,
-                Telefono = o.Telefono,
-                Email = o.Email,
-                IdEspecialidad = o.IdEspecialidad,
-                Activo = o.Activo,
-                NombreCompleto = o.NombreCompleto,
-                Especialidad = o.Especialidad == null ? null : new EspecialidadRespuesta
-                {
-                    Id = o.Especialidad.Id,
-                    Nombre = o.Especialidad.Nombre,
-                    Descripcion = o.Especialidad.Descripcion
-                },
-                Horarios = new List<HorarioRespuesta>()
-            };
-        }
     }
 }

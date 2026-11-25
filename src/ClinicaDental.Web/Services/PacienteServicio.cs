@@ -25,22 +25,50 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
+        private static IEnumerable<PacienteRespuesta> Proyectar(IQueryable<Paciente> consulta)
+        {
+            return consulta
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Nombres,
+                    p.Apellidos,
+                    p.CI,
+                    p.FechaNacimiento,
+                    p.Telefono,
+                    p.Email,
+                    p.Direccion,
+                    p.FechaRegistro
+                })
+                .ToList()
+                .Select(p => new PacienteRespuesta
+                {
+                    Id = p.Id,
+                    Nombres = p.Nombres,
+                    Apellidos = p.Apellidos,
+                    CI = p.CI,
+                    FechaNacimiento = p.FechaNacimiento,
+                    Telefono = p.Telefono,
+                    Email = p.Email,
+                    Direccion = p.Direccion,
+                    FechaRegistro = p.FechaRegistro,
+                    NombreCompleto = p.Nombres + " " + p.Apellidos
+                });
+        }
+
         public IEnumerable<PacienteRespuesta> ObtenerTodos()
         {
-            return _context.pacientes
+            return Proyectar(_context.pacientes
                 .AsNoTracking()
                 .OrderBy(p => p.Apellidos)
-                .ThenBy(p => p.Nombres)
-                .ToList()
-                .Select(Mapear);
+                .ThenBy(p => p.Nombres));
         }
 
         public PacienteRespuesta? ObtenerPorId(Guid id)
         {
-            var paciente = _context.pacientes
+            return Proyectar(_context.pacientes
                 .AsNoTracking()
-                .FirstOrDefault(p => p.Id == id);
-            return paciente == null ? null : Mapear(paciente);
+                .Where(p => p.Id == id)).FirstOrDefault();
         }
 
         public HistorialPacienteRespuesta? ObtenerHistorial(Guid id)

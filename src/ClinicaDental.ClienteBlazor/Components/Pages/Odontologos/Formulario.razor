@@ -20,17 +20,17 @@ else if (!NoEncontrado)
         <div class="formulario-seccion"><span class="ms">badge</span>Datos profesionales</div>
         <div class="row g-3">
             <div class="col-md-6 form-floating">
-                <InputText id="nombres" class="form-control" @bind-Value="_odontologo.Nombres" placeholder="Nombres" />
+                <InputText id="nombres" class="form-control" @bind-Value="_odontologo.Nombres" placeholder="Nombres" maxlength="50" />
                 <label for="nombres">Nombres *</label>
                 <ValidationMessage For="() => _odontologo.Nombres" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="apellidos" class="form-control" @bind-Value="_odontologo.Apellidos" placeholder="Apellidos" />
+                <InputText id="apellidos" class="form-control" @bind-Value="_odontologo.Apellidos" placeholder="Apellidos" maxlength="50" />
                 <label for="apellidos">Apellidos *</label>
                 <ValidationMessage For="() => _odontologo.Apellidos" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="matricula" class="form-control" @bind-Value="_odontologo.Matricula" placeholder="Matrícula" />
+                <InputText id="matricula" class="form-control" @bind-Value="_odontologo.Matricula" placeholder="Matrícula" maxlength="20" />
                 <label for="matricula">Matrícula profesional *</label>
                 <ValidationMessage For="() => _odontologo.Matricula" />
             </div>
@@ -50,12 +50,12 @@ else if (!NoEncontrado)
         <div class="formulario-seccion mt-4"><span class="ms">contact_phone</span>Contacto</div>
         <div class="row g-3">
             <div class="col-md-6 form-floating">
-                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_odontologo.Telefono" placeholder="Teléfono" />
+                <InputText id="telefono" type="tel" class="form-control" @bind-Value="_odontologo.Telefono" placeholder="Teléfono" maxlength="16" />
                 <label for="telefono">Teléfono *</label>
                 <ValidationMessage For="() => _odontologo.Telefono" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="email" type="email" class="form-control" @bind-Value="_odontologo.Email" placeholder="Correo" />
+                <InputText id="email" type="email" class="form-control" @bind-Value="_odontologo.Email" placeholder="Correo" maxlength="100" />
                 <label for="email">Correo electrónico</label>
                 <ValidationMessage For="() => _odontologo.Email" />
             </div>

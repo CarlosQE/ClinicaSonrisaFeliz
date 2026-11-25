@@ -1,6 +1,5 @@
-using ClinicaDental.Web.DTOs.Cita;
+using ClinicaDental.Contrato.DTOs.Cita;
 using ClinicaDental.Web.Interfaces;
-using ClinicaDental.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicaDental.Web.Controllers
@@ -26,11 +25,10 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}", Name = "ObtenerCitaPorId")]
         public IActionResult Get(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var cita = _citaServicio.ObtenerPorId(id);
             if (cita == null)
-            {
                 return NotFound($"No se encontró la cita con el id: {id}");
-            }
             return Ok(cita);
         }
 
@@ -42,6 +40,7 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("La fecha es requerida (formato yyyy-MM-dd)");
             }
 
+            if (idOdontologo.HasValue && idOdontologo.Value == Guid.Empty) return BadRequest("El id del odontólogo no es válido.");
             if (idOdontologo.HasValue && !_citaServicio.ExisteOdontologo(idOdontologo.Value))
             {
                 return BadRequest("El odontólogo indicado no existe");
@@ -54,50 +53,41 @@ namespace ClinicaDental.Web.Controllers
         [HttpPost(Name = "AgendarCita")]
         public IActionResult Post([FromBody] CitaDto citaDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (citaDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (!_citaServicio.ExistePaciente(citaDto.IdPaciente))
-            {
+            if (citaDto.IdPaciente == null || citaDto.IdPaciente == Guid.Empty)
+                return BadRequest("El id del paciente no es válido.");
+            if (citaDto.IdOdontologo == null || citaDto.IdOdontologo == Guid.Empty)
+                return BadRequest("El id del odontólogo no es válido.");
+            if (!_citaServicio.ExistePaciente(citaDto.IdPaciente.Value))
                 return BadRequest("El paciente seleccionado no existe");
-            }
-
-            if (!_citaServicio.ExisteOdontologo(citaDto.IdOdontologo))
-            {
+            if (!_citaServicio.ExisteOdontologo(citaDto.IdOdontologo.Value))
                 return BadRequest("El odontólogo seleccionado no existe");
-            }
-
-            if (!_citaServicio.OdontologoActivo(citaDto.IdOdontologo))
-            {
+            if (!_citaServicio.OdontologoActivo(citaDto.IdOdontologo.Value))
                 return BadRequest("El odontólogo está inactivo y no puede recibir citas");
-            }
-
             if (!_citaServicio.DuracionValida(citaDto.DuracionMinutos))
-            {
-                return BadRequest("La duración debe estar entre 15 y 240 minutos");
-            }
+                return BadRequest("La duración debe estar entre 15 y 240 minutos y ser múltiplo de 15.");
+            if (!_citaServicio.MotivoValido(citaDto.Motivo))
+                return BadRequest("El motivo debe tener entre 3 y 200 caracteres y contener al menos una letra.");
 
             var fecha = citaDto.Fecha!.Value;
             var hora = citaDto.Hora!.Value;
 
-            if (!_citaServicio.FechaFutura(fecha, hora))
+            if (!_citaServicio.FechaDentroDeRango(fecha, hora))
+                return BadRequest("La cita debe programarse para una fecha y hora futura, con máximo 365 días de anticipación.");
+
+            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
-                return BadRequest("La cita debe programarse para una fecha y hora futura");
+                return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo (06:00 a 22:00).");
             }
 
-            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
-            {
-                return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo");
-            }
-
-            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
+            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El odontólogo ya tiene una cita en ese horario");
             }
 
-            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente, fecha, hora, citaDto.DuracionMinutos))
+            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El paciente ya tiene otra cita en ese horario");
             }
@@ -106,6 +96,10 @@ namespace ClinicaDental.Web.Controllers
             {
                 var nuevaCita = _citaServicio.agendar(citaDto);
                 return CreatedAtAction(nameof(Get), new { id = nuevaCita.Id }, nuevaCita);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo agendar la cita por un conflicto de datos.");
             }
             catch (Exception ex)
             {
@@ -116,45 +110,34 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("{id:guid}/reprogramar", Name = "ReprogramarCita")]
         public IActionResult Reprogramar(Guid id, [FromBody] ReprogramarCitaDto reprogramarDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (reprogramarDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var cita = _citaServicio.ObtenerPorId(id);
             if (cita == null)
-            {
                 return NotFound($"No se encontró la cita con el id: {id}");
-            }
-
             if (!cita.EstaVigente)
-            {
                 return BadRequest($"No se puede reprogramar una cita en estado {cita.Estado}");
-            }
+
+            if (reprogramarDto.IdNuevoOdontologo.HasValue && reprogramarDto.IdNuevoOdontologo.Value == Guid.Empty)
+                return BadRequest("El id del nuevo odontólogo no es válido.");
 
             var idOdontologo = reprogramarDto.IdNuevoOdontologo ?? cita.IdOdontologo;
-
             if (!_citaServicio.ExisteOdontologo(idOdontologo))
-            {
                 return BadRequest("El odontólogo seleccionado no existe");
-            }
-
             if (!_citaServicio.OdontologoActivo(idOdontologo))
-            {
                 return BadRequest("El odontólogo está inactivo y no puede recibir citas");
-            }
 
             var nuevaFecha = reprogramarDto.NuevaFecha!.Value;
             var nuevaHora = reprogramarDto.NuevaHora!.Value;
 
-            if (!_citaServicio.FechaFutura(nuevaFecha, nuevaHora))
-            {
-                return BadRequest("La cita debe programarse para una fecha y hora futura");
-            }
+            if (!_citaServicio.FechaDentroDeRango(nuevaFecha, nuevaHora))
+                return BadRequest("La cita debe programarse para una fecha y hora futura, con máximo 365 días de anticipación.");
 
             if (!_citaServicio.DentroDeHorario(idOdontologo, nuevaFecha, nuevaHora, cita.DuracionMinutos))
             {
-                return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo");
+                return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo (06:00 a 22:00).");
             }
 
             if (!_citaServicio.OdontologoDisponible(idOdontologo, nuevaFecha, nuevaHora, cita.DuracionMinutos, cita.Id))
@@ -172,6 +155,10 @@ namespace ClinicaDental.Web.Controllers
                 var citaReprogramada = _citaServicio.reprogramar(id, nuevaFecha, nuevaHora, reprogramarDto.IdNuevoOdontologo);
                 return Ok(citaReprogramada);
             }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo reprogramar la cita por un conflicto de datos.");
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al reprogramar la cita: {ex.Message}");
@@ -181,26 +168,26 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("{id:guid}/cancelar", Name = "CancelarCita")]
         public IActionResult Cancelar(Guid id, [FromBody] CancelarCitaDto cancelarDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (cancelarDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!_citaServicio.MotivoValido(cancelarDto.Motivo))
+                return BadRequest("El motivo debe tener entre 3 y 200 caracteres y contener al menos una letra.");
 
             var cita = _citaServicio.ObtenerPorId(id);
             if (cita == null)
-            {
                 return NotFound($"No se encontró la cita con el id: {id}");
-            }
-
             if (!cita.EstaVigente)
-            {
                 return BadRequest($"No se puede cancelar una cita en estado {cita.Estado}");
-            }
 
             try
             {
                 _citaServicio.cancelar(id, cancelarDto.Motivo);
                 return Ok($"La cita {id} fue cancelada");
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo cancelar la cita por un conflicto de datos.");
             }
             catch (Exception ex)
             {

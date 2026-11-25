@@ -51,7 +51,7 @@ else if (_deudas.Count > 0)
                 <ValidationMessage For="() => _pago.Monto" />
             </div>
             <div class="col-md-6 form-floating">
-                <InputText id="observacion" class="form-control" @bind-Value="_pago.Observacion" placeholder="Observación" />
+                <InputText id="observacion" class="form-control" @bind-Value="_pago.Observacion" placeholder="Observación" maxlength="250" />
                 <label for="observacion">Observación</label>
                 <ValidationMessage For="() => _pago.Observacion" />
             </div>

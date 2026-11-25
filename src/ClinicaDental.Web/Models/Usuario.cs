@@ -36,12 +36,4 @@ namespace ClinicaDental.Web.Models
         public DateTime? UltimoAcceso { get; set; }
     }
 
-    public static class Roles
-    {
-        public const string Administrador = "Administrador";
-        public const string Recepcionista = "Recepcionista";
-        public const string Odontologo = "Odontologo";
-
-        public static readonly string[] Todos = [Administrador, Recepcionista, Odontologo];
-    }
 }

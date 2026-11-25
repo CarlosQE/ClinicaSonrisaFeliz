@@ -46,12 +46,12 @@
             <EditForm Model="_datos" OnValidSubmit="Guardar" FormName="especialidad">
                 <DataAnnotationsValidator />
                 <div class="form-floating mb-3">
-                    <InputText id="nombre" class="form-control" @bind-Value="_datos.Nombre" placeholder="Nombre" />
+                    <InputText id="nombre" class="form-control" @bind-Value="_datos.Nombre" placeholder="Nombre" maxlength="60" />
                     <label for="nombre">Nombre *</label>
                     <ValidationMessage For="() => _datos.Nombre" />
                 </div>
                 <div class="form-floating mb-3">
-                    <InputTextArea id="descripcion" class="form-control alto-110" @bind-Value="_datos.Descripcion" placeholder="Descripción" />
+                    <InputTextArea id="descripcion" class="form-control alto-110" @bind-Value="_datos.Descripcion" placeholder="Descripción" maxlength="200" />
                     <label for="descripcion">Descripción</label>
                     <ValidationMessage For="() => _datos.Descripcion" />
                 </div>

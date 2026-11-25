@@ -29,7 +29,7 @@ else if (_cita is { } c)
                 </div>
                 <div class="row g-3 mb-3">
                     <div class="col-md-7 form-floating">
-                        <InputDate id="nueva-fecha" class="form-control" @bind-Value="_datos.NuevaFecha" />
+                        <InputDate id="nueva-fecha" class="form-control" @bind-Value="_datos.NuevaFecha" min="@Hoy.ToString("yyyy-MM-dd")" max="@Hoy.AddDays(365).ToString("yyyy-MM-dd")" />
                         <label for="nueva-fecha">Nueva fecha *</label>
                         <ValidationMessage For="() => _datos.NuevaFecha" />
                     </div>

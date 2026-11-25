@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bogus" Version="35.6.5" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
@@ -21,6 +22,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.3.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.3.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClinicaDental.Contrato\ClinicaDental.Contrato.csproj" />
   </ItemGroup>
 
 </Project>

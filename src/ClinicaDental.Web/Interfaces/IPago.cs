@@ -1,20 +1,21 @@
-﻿using ClinicaDental.Web.DTOs.Pago;
-using ClinicaDental.Web.Models;
+using ClinicaDental.Contrato.DTOs.Pago;
+using ClinicaDental.Contrato.Respuestas.Pago;
 
 namespace ClinicaDental.Web.Interfaces
 {
     public interface IPago
     {
-        IEnumerable<Pago> ObtenerTodos(Guid? idPaciente = null);
-        Pago? ObtenerPorId(Guid id);
-        Pago registrar(PagoDto pago);
-        IEnumerable<DeudaDto> ConsultarDeudas(Guid? idPaciente = null);
+        IEnumerable<PagoRespuesta> ObtenerTodos(Guid? idPaciente = null);
+        PagoRespuesta? ObtenerPorId(Guid id);
+        PagoRespuesta registrar(PagoDto pago);
+        IEnumerable<DeudaRespuesta> ConsultarDeudas(Guid? idPaciente = null);
         decimal ObtenerSaldoPendiente(Guid idTratamiento);
-        ComprobanteDto? ObtenerComprobante(Guid idPago);
+        ComprobanteRespuesta? ObtenerComprobante(Guid idPago);
         bool ExistePaciente(Guid idPaciente);
         bool ExisteTratamiento(Guid idTratamiento);
         bool MontoValido(decimal monto);
         bool MetodoValido(MetodoPago metodo);
         bool MontoNoExcedeSaldo(Guid idTratamiento, decimal monto);
+        bool ObservacionValida(string? observacion);
     }
 }

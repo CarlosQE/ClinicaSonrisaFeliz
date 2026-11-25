@@ -67,12 +67,12 @@
                         <EditForm Model="_nuevo" OnValidSubmit="Registrar" FormName="nuevo-usuario">
                             <DataAnnotationsValidator />
                             <div class="form-floating mb-3">
-                                <InputText id="nombre" class="form-control" @bind-Value="_nuevo.NombreCompleto" placeholder="Nombre" />
+                                <InputText id="nombre" class="form-control" @bind-Value="_nuevo.NombreCompleto" placeholder="Nombre" maxlength="50" />
                                 <label for="nombre">Nombre completo *</label>
                                 <ValidationMessage For="() => _nuevo.NombreCompleto" />
                             </div>
                             <div class="form-floating mb-3">
-                                <InputText id="usuario" class="form-control" @bind-Value="_nuevo.NombreUsuario" placeholder="Usuario" autocomplete="off" />
+                                <InputText id="usuario" class="form-control" @bind-Value="_nuevo.NombreUsuario" placeholder="Usuario" autocomplete="off" maxlength="30" />
                                 <label for="usuario">Nombre de usuario *</label>
                                 <ValidationMessage For="() => _nuevo.NombreUsuario" />
                             </div>

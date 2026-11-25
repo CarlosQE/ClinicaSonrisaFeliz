@@ -1,4 +1,4 @@
-using ClinicaDental.Web.DTOs.Paciente;
+using ClinicaDental.Contrato.DTOs.Paciente;
 using ClinicaDental.Web.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +24,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}", Name = "ObtenerPacientePorId")]
         public IActionResult Get(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var paciente = _pacienteServicio.ObtenerPorId(id);
 
             if (paciente == null)
@@ -37,6 +38,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}/historial", Name = "ConsultarHistorialPaciente")]
         public IActionResult GetHistorial(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var historial = _pacienteServicio.ObtenerHistorial(id);
 
             if (historial == null)
@@ -50,35 +52,35 @@ namespace ClinicaDental.Web.Controllers
         [HttpPost(Name = "RegistrarPaciente")]
         public IActionResult Post([FromBody] PacienteDto pacienteDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (pacienteDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (!_pacienteServicio.DatosObligatoriosValidos(
-                    pacienteDto.Nombres,
-                    pacienteDto.Apellidos,
-                    pacienteDto.CI,
-                    pacienteDto.Telefono,
-                    pacienteDto.FechaNacimiento))
-            {
-                return BadRequest("Nombres, apellidos, CI, fecha de nacimiento y teléfono son obligatorios.");
-            }
-
-            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento))
-            {
-                return BadRequest("La fecha de nacimiento no puede ser futura.");
-            }
+            if (!_pacienteServicio.NombreValido(pacienteDto.Nombres) || !_pacienteServicio.NombreValido(pacienteDto.Apellidos))
+                return BadRequest("Nombres y apellidos deben tener entre 2 y 50 caracteres, solo letras, espacios, apóstrofe o guion.");
+            if (!_pacienteServicio.CiValido(pacienteDto.CI))
+                return BadRequest("El CI debe tener 5 a 10 dígitos, con complemento opcional (ej. 1234567 o 1234567-1A).");
+            if (pacienteDto.FechaNacimiento == null || pacienteDto.FechaNacimiento == default)
+                return BadRequest("La fecha de nacimiento es obligatoria.");
+            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento.Value))
+                return BadRequest("La fecha de nacimiento no es válida (no futura, desde 1900-01-01, edad máxima 120 años).");
+            if (!_pacienteServicio.TelefonoValido(pacienteDto.Telefono))
+                return BadRequest("El teléfono debe tener 7 a 15 dígitos, con + opcional.");
+            if (!_pacienteServicio.EmailValido(pacienteDto.Email))
+                return BadRequest("El email no es válido o supera los 100 caracteres.");
+            if (!_pacienteServicio.DireccionValida(pacienteDto.Direccion))
+                return BadRequest("La dirección no puede tener más de 150 caracteres ni caracteres de control.");
 
             if (_pacienteServicio.CiRepetido(pacienteDto.CI))
-            {
                 return BadRequest("El CI ya está registrado.");
-            }
 
             try
             {
                 var nuevo = _pacienteServicio.Registrar(pacienteDto);
                 return CreatedAtAction(nameof(Get), new { id = nuevo.Id }, nuevo);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo registrar el paciente por un conflicto de datos.");
             }
             catch (Exception)
             {
@@ -87,42 +89,41 @@ namespace ClinicaDental.Web.Controllers
         }
 
         [HttpPut("{id:guid}", Name = "ActualizarPaciente")]
-        public IActionResult Put(Guid id, [FromBody] ActualizarPacienteDto pacienteDto)
+        public IActionResult Put(Guid id, [FromBody] PacienteDto pacienteDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (pacienteDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (!_pacienteServicio.ExistePaciente(id))
-            {
                 return NotFound($"No se encontró el paciente con el id: {id}");
-            }
 
-            if (!_pacienteServicio.DatosObligatoriosValidos(
-                    pacienteDto.Nombres,
-                    pacienteDto.Apellidos,
-                    pacienteDto.CI,
-                    pacienteDto.Telefono,
-                    pacienteDto.FechaNacimiento))
-            {
-                return BadRequest("Nombres, apellidos, CI, fecha de nacimiento y teléfono son obligatorios.");
-            }
-
-            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento))
-            {
-                return BadRequest("La fecha de nacimiento no puede ser futura.");
-            }
+            if (!_pacienteServicio.NombreValido(pacienteDto.Nombres) || !_pacienteServicio.NombreValido(pacienteDto.Apellidos))
+                return BadRequest("Nombres y apellidos deben tener entre 2 y 50 caracteres, solo letras, espacios, apóstrofe o guion.");
+            if (!_pacienteServicio.CiValido(pacienteDto.CI))
+                return BadRequest("El CI debe tener 5 a 10 dígitos, con complemento opcional (ej. 1234567 o 1234567-1A).");
+            if (pacienteDto.FechaNacimiento == null || pacienteDto.FechaNacimiento == default)
+                return BadRequest("La fecha de nacimiento es obligatoria.");
+            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento.Value))
+                return BadRequest("La fecha de nacimiento no es válida (no futura, desde 1900-01-01, edad máxima 120 años).");
+            if (!_pacienteServicio.TelefonoValido(pacienteDto.Telefono))
+                return BadRequest("El teléfono debe tener 7 a 15 dígitos, con + opcional.");
+            if (!_pacienteServicio.EmailValido(pacienteDto.Email))
+                return BadRequest("El email no es válido o supera los 100 caracteres.");
+            if (!_pacienteServicio.DireccionValida(pacienteDto.Direccion))
+                return BadRequest("La dirección no puede tener más de 150 caracteres ni caracteres de control.");
 
             if (_pacienteServicio.CiRepetido(pacienteDto.CI, id))
-            {
                 return BadRequest("El CI ya está registrado por otro paciente.");
-            }
 
             try
             {
                 var actualizado = _pacienteServicio.Actualizar(id, pacienteDto);
                 return Ok(actualizado);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo actualizar el paciente por un conflicto de datos.");
             }
             catch (Exception)
             {
@@ -133,6 +134,7 @@ namespace ClinicaDental.Web.Controllers
         [HttpDelete("{id:guid}", Name = "EliminarPaciente")]
         public IActionResult Delete(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             if (!_pacienteServicio.ExistePaciente(id))
             {
                 return NotFound($"No se encontró el paciente con el id: {id}");

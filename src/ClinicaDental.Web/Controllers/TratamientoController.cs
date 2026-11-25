@@ -1,6 +1,5 @@
-using ClinicaDental.Web.DTOs.Tratamiento;
+using ClinicaDental.Contrato.DTOs.Tratamiento;
 using ClinicaDental.Web.Interfaces;
-using ClinicaDental.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicaDental.Web.Controllers
@@ -19,11 +18,13 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet(Name = "ListarTratamientos")]
         public IActionResult Get([FromQuery] Guid? idPaciente, [FromQuery] TipoTratamiento? tipo, [FromQuery] Guid? idOdontologo)
         {
+            if (idPaciente.HasValue && idPaciente.Value == Guid.Empty) return BadRequest("El id del paciente no es válido.");
             if (idPaciente.HasValue && !_tratamientoServicio.ExistePaciente(idPaciente.Value))
             {
                 return BadRequest("El paciente indicado no existe.");
             }
 
+            if (idOdontologo.HasValue && idOdontologo.Value == Guid.Empty) return BadRequest("El id del odontólogo no es válido.");
             if (idOdontologo.HasValue && !_tratamientoServicio.ExisteOdontologo(idOdontologo.Value))
             {
                 return BadRequest("El odontólogo indicado no existe.");
@@ -41,77 +42,59 @@ namespace ClinicaDental.Web.Controllers
         [HttpGet("{id:guid}", Name = "ObtenerTratamientoPorId")]
         public IActionResult Get(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             var tratamiento = _tratamientoServicio.ObtenerPorId(id);
-
             if (tratamiento == null)
-            {
                 return NotFound($"No se encontró el tratamiento con el id: {id}");
-            }
-
             return Ok(tratamiento);
         }
 
         [HttpPost(Name = "RegistrarTratamiento")]
         public IActionResult Post([FromBody] TratamientoDto tratamientoDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (tratamientoDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (!_tratamientoServicio.ExistePaciente(tratamientoDto.IdPaciente))
-            {
+            if (tratamientoDto.IdPaciente == null || tratamientoDto.IdPaciente == Guid.Empty)
+                return BadRequest("El id del paciente no es válido.");
+            if (tratamientoDto.IdOdontologo == null || tratamientoDto.IdOdontologo == Guid.Empty)
+                return BadRequest("El id del odontólogo no es válido.");
+            if (!_tratamientoServicio.ExistePaciente(tratamientoDto.IdPaciente.Value))
                 return BadRequest("El paciente seleccionado no existe.");
-            }
-
-            if (!_tratamientoServicio.ExisteOdontologo(tratamientoDto.IdOdontologo))
-            {
+            if (!_tratamientoServicio.ExisteOdontologo(tratamientoDto.IdOdontologo.Value))
                 return BadRequest("El odontólogo seleccionado no existe.");
-            }
-
-            if (!_tratamientoServicio.OdontologoActivo(tratamientoDto.IdOdontologo))
-            {
+            if (!_tratamientoServicio.OdontologoActivo(tratamientoDto.IdOdontologo.Value))
                 return BadRequest("El odontólogo está inactivo y no puede realizar tratamientos.");
-            }
-
             if (!_tratamientoServicio.TipoValido(tratamientoDto.Tipo))
-            {
                 return BadRequest("El tipo de tratamiento no es válido (0 = LimpiezaDental, 1 = Ortodoncia, 2 = Endodoncia, 3 = Extraccion).");
-            }
-
             if (!_tratamientoServicio.CostoValido(tratamientoDto.Costo))
-            {
-                return BadRequest("El costo debe ser mayor a 0 y tener como máximo 2 decimales.");
-            }
+                return BadRequest("El costo debe ser mayor a 0, no mayor a 100.000 y tener como máximo 2 decimales.");
+            if (tratamientoDto.Fecha.HasValue && !_tratamientoServicio.FechaValida(tratamientoDto.Fecha.Value, tratamientoDto.IdPaciente.Value))
+                return BadRequest("La fecha del tratamiento no es válida (no futura, desde 2000-01-01 y no anterior al nacimiento del paciente).");
+            if (!_tratamientoServicio.ObservacionesOpcionalesValidas(tratamientoDto.Observaciones))
+                return BadRequest("Las observaciones no pueden tener más de 500 caracteres ni caracteres de control.");
 
-            if (tratamientoDto.Fecha.HasValue && !_tratamientoServicio.FechaValida(tratamientoDto.Fecha.Value))
-            {
-                return BadRequest("La fecha del tratamiento no es válida.");
-            }
-
-            var idCita = tratamientoDto.IdCita == Guid.Empty ? null : tratamientoDto.IdCita;
+            if (tratamientoDto.IdCita.HasValue && tratamientoDto.IdCita.Value == Guid.Empty)
+                return BadRequest("El id de la cita no es válido.");
+            var idCita = tratamientoDto.IdCita;
             if (idCita.HasValue)
             {
                 if (!_tratamientoServicio.ExisteCita(idCita.Value))
-                {
                     return BadRequest("La cita indicada no existe.");
-                }
-
-                if (!_tratamientoServicio.CitaPerteneceAPaciente(idCita.Value, tratamientoDto.IdPaciente))
-                {
+                if (!_tratamientoServicio.CitaPerteneceAPaciente(idCita.Value, tratamientoDto.IdPaciente.Value))
                     return BadRequest("La cita indicada no pertenece al paciente seleccionado.");
-                }
-
                 if (!_tratamientoServicio.CitaNoCancelada(idCita.Value))
-                {
                     return BadRequest("No se puede registrar un tratamiento para una cita cancelada.");
-                }
             }
 
             try
             {
                 var nuevo = _tratamientoServicio.Registrar(tratamientoDto);
                 return CreatedAtAction(nameof(Get), new { id = nuevo.Id }, nuevo);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo registrar el tratamiento por un conflicto de datos.");
             }
             catch (Exception ex)
             {
@@ -122,25 +105,23 @@ namespace ClinicaDental.Web.Controllers
         [HttpPut("{id:guid}/observaciones", Name = "ActualizarObservacionesTratamiento")]
         public IActionResult ActualizarObservaciones(Guid id, [FromBody] ActualizarObservacionesDto observacionesDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
+            if (observacionesDto == null) return BadRequest("El cuerpo de la solicitud es requerido.");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (!_tratamientoServicio.ExisteTratamiento(id))
-            {
                 return NotFound($"No se encontró el tratamiento con el id: {id}");
-            }
-
             if (!_tratamientoServicio.ObservacionesValidas(observacionesDto.Observaciones))
-            {
-                return BadRequest("Las observaciones son obligatorias y no pueden tener más de 1000 caracteres.");
-            }
+                return BadRequest("Las observaciones son obligatorias y no pueden tener más de 500 caracteres.");
 
             try
             {
                 var actualizado = _tratamientoServicio.ActualizarObservaciones(id, observacionesDto.Observaciones);
                 return Ok(actualizado);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                return Conflict("No se pudo actualizar el tratamiento por un conflicto de datos.");
             }
             catch (Exception ex)
             {
@@ -151,10 +132,9 @@ namespace ClinicaDental.Web.Controllers
         [HttpDelete("{id:guid}", Name = "EliminarTratamiento")]
         public IActionResult Delete(Guid id)
         {
+            if (id == Guid.Empty) return BadRequest("El id no es válido.");
             if (!_tratamientoServicio.ExisteTratamiento(id))
-            {
                 return NotFound($"No se encontró el tratamiento con el id: {id}");
-            }
 
             if (_tratamientoServicio.TienePagos(id))
             {

@@ -46,7 +46,7 @@ else
                 <div class="formulario-seccion mt-4"><span class="ms">event</span>¿Cuándo?</div>
                 <div class="row g-3">
                     <div class="col-md-4 form-floating">
-                        <InputDate id="fecha" class="form-control" @bind-Value="_cita.Fecha" />
+                        <InputDate id="fecha" class="form-control" @bind-Value="_cita.Fecha" min="@Hoy.ToString("yyyy-MM-dd")" max="@Hoy.AddDays(365).ToString("yyyy-MM-dd")" />
                         <label for="fecha">Fecha *</label>
                         <ValidationMessage For="() => _cita.Fecha" />
                     </div>
@@ -67,7 +67,7 @@ else
                 </div>
 
                 <div class="form-floating mt-3">
-                    <InputText id="motivo" class="form-control" @bind-Value="_cita.Motivo" placeholder="Motivo" />
+                    <InputText id="motivo" class="form-control" @bind-Value="_cita.Motivo" placeholder="Motivo" maxlength="200" />
                     <label for="motivo">Motivo de la consulta *</label>
                     <ValidationMessage For="() => _cita.Motivo" />
                 </div>

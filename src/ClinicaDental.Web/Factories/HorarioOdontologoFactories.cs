@@ -1,39 +1,103 @@
+using Bogus;
+
+using ClinicaDental.Web.Data;
 using ClinicaDental.Web.Models;
+
 using Microsoft.EntityFrameworkCore;
 
-namespace ClinicaDental.Web.Factories
+namespace ClinicaDental.Web.Factories;
+
+public static class HorarioOdontologoFactories
 {
-    public static class HorarioOdontologoFactories
+    private const int CantidadBase = 40;
+    private const int TamanoLote = 200;
+
+    public static void Seed(BaseDatos context, int cantidadExtra)
     {
-        public static void Sembrar(ModelBuilder modelBuilder)
+        if (context.horariosOdontologo.Any()) return;
+
+        context.Database.SetCommandTimeout(120);
+        var extras = Math.Clamp(cantidadExtra, 0, 1000 - CantidadBase);
+        var faker = new Faker("es");
+        var lote = new List<HorarioOdontologo>(TamanoLote);
+
+        var odontologosBase = new[]
         {
-            // Horarios: lunes a viernes, 08:00-12:00 y 14:00-18:00, para los 4 odontólogos.
-            // Los Guids son deterministas (HasData exige valores fijos).
-            var horarios = new List<HorarioOdontologo>();
-            var numero = 1;
-            foreach (var idOdontologo in new[] { OdontologoFactories.Odo1, OdontologoFactories.Odo2, OdontologoFactories.Odo3, OdontologoFactories.Odo4 })
+            Guid.Parse("20000000-0000-0000-0000-000000000001"),
+            Guid.Parse("20000000-0000-0000-0000-000000000002"),
+            Guid.Parse("20000000-0000-0000-0000-000000000003"),
+            Guid.Parse("20000000-0000-0000-0000-000000000004")
+        };
+        var dias = new[]
+        {
+            DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+            DayOfWeek.Thursday, DayOfWeek.Friday
+        };
+        var turnos = new[]
+        {
+            (Inicio: new TimeOnly(8, 0), Fin: new TimeOnly(12, 0)),
+            (Inicio: new TimeOnly(14, 0), Fin: new TimeOnly(18, 0))
+        };
+
+        // Los 40 horarios históricos: lunes a viernes, dos turnos, para los cuatro odontólogos base.
+        var indice = 1;
+        foreach (var idOdontologo in odontologosBase)
+        {
+            foreach (var dia in dias)
             {
-                foreach (var dia in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+                foreach (var turno in turnos)
                 {
-                    horarios.Add(new HorarioOdontologo
+                    lote.Add(new HorarioOdontologo
                     {
-                        Id = Guid.Parse($"40000000-0000-0000-0000-{numero++:D12}"),
+                        Id = Guid.Parse($"40000000-0000-0000-0000-{indice:D12}"),
                         IdOdontologo = idOdontologo,
                         DiaSemana = dia,
-                        HoraInicio = new TimeOnly(8, 0),
-                        HoraFin = new TimeOnly(12, 0)
+                        HoraInicio = turno.Inicio,
+                        HoraFin = turno.Fin
                     });
-                    horarios.Add(new HorarioOdontologo
-                    {
-                        Id = Guid.Parse($"40000000-0000-0000-0000-{numero++:D12}"),
-                        IdOdontologo = idOdontologo,
-                        DiaSemana = dia,
-                        HoraInicio = new TimeOnly(14, 0),
-                        HoraFin = new TimeOnly(18, 0)
-                    });
+                    indice++;
                 }
             }
-            modelBuilder.Entity<HorarioOdontologo>().HasData(horarios);
+        }
+
+        context.horariosOdontologo.AddRange(lote);
+        context.SaveChanges();
+        context.ChangeTracker.Clear();
+        lote.Clear();
+
+        var odontologosExtras = context.odontologos
+            .Where(o => !odontologosBase.Contains(o.Id))
+            .OrderBy(o => o.Matricula)
+            .Select(o => o.Id)
+            .ToList();
+
+        // Un solo horario por odontólogo extra y día, así no hay solapes por odontólogo.
+        for (var i = 1; i <= extras; i++)
+        {
+            var turno = faker.PickRandom(turnos);
+            lote.Add(new HorarioOdontologo
+            {
+                Id = Guid.NewGuid(),
+                IdOdontologo = odontologosExtras[(i - 1) % odontologosExtras.Count],
+                DiaSemana = faker.PickRandom(dias),
+                HoraInicio = turno.Inicio,
+                HoraFin = turno.Fin
+            });
+
+            if (lote.Count == TamanoLote)
+            {
+                context.horariosOdontologo.AddRange(lote);
+                context.SaveChanges();
+                context.ChangeTracker.Clear();
+                lote.Clear();
+            }
+        }
+
+        if (lote.Count > 0)
+        {
+            context.horariosOdontologo.AddRange(lote);
+            context.SaveChanges();
+            context.ChangeTracker.Clear();
         }
     }
 }

@@ -25,7 +25,7 @@ else if (_cita is { } c)
             }
         </div>
         <div class="form-floating">
-            <InputTextArea id="motivo" class="form-control alto-110" @bind-Value="_datos.Motivo" placeholder="Motivo" />
+            <InputTextArea id="motivo" class="form-control alto-110" @bind-Value="_datos.Motivo" placeholder="Motivo" maxlength="200" />
             <label for="motivo">Motivo de la cancelación *</label>
             <ValidationMessage For="() => _datos.Motivo" />
         </div>

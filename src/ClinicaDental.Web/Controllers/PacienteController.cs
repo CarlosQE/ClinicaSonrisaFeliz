@@ -1,4 +1,4 @@
-using ClinicaDental.Web.DTOs.Paciente;
+using ClinicaDental.Contrato.DTOs.Paciente;
 using ClinicaDental.Web.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -60,12 +60,12 @@ namespace ClinicaDental.Web.Controllers
                     pacienteDto.Apellidos,
                     pacienteDto.CI,
                     pacienteDto.Telefono,
-                    pacienteDto.FechaNacimiento))
+                    pacienteDto.FechaNacimiento!.Value))
             {
                 return BadRequest("Nombres, apellidos, CI, fecha de nacimiento y teléfono son obligatorios.");
             }
 
-            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento))
+            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento!.Value))
             {
                 return BadRequest("La fecha de nacimiento no puede ser futura.");
             }
@@ -87,7 +87,7 @@ namespace ClinicaDental.Web.Controllers
         }
 
         [HttpPut("{id:guid}", Name = "ActualizarPaciente")]
-        public IActionResult Put(Guid id, [FromBody] ActualizarPacienteDto pacienteDto)
+        public IActionResult Put(Guid id, [FromBody] PacienteDto pacienteDto)
         {
             if (!ModelState.IsValid)
             {
@@ -104,12 +104,12 @@ namespace ClinicaDental.Web.Controllers
                     pacienteDto.Apellidos,
                     pacienteDto.CI,
                     pacienteDto.Telefono,
-                    pacienteDto.FechaNacimiento))
+                    pacienteDto.FechaNacimiento!.Value))
             {
                 return BadRequest("Nombres, apellidos, CI, fecha de nacimiento y teléfono son obligatorios.");
             }
 
-            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento))
+            if (!_pacienteServicio.FechaNacimientoValida(pacienteDto.FechaNacimiento!.Value))
             {
                 return BadRequest("La fecha de nacimiento no puede ser futura.");
             }

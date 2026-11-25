@@ -1,8 +1,14 @@
-﻿using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.Pago;
+using ClinicaDental.Contrato.DTOs.Pago;
+using ClinicaDental.Contrato.Respuestas.Cita;
+using ClinicaDental.Contrato.Respuestas.Especialidad;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
+using ClinicaDental.Contrato.Respuestas.Odontologo;
+using ClinicaDental.Contrato.Respuestas.Paciente;
+using ClinicaDental.Contrato.Respuestas.Pago;
+using ClinicaDental.Contrato.Respuestas.Tratamiento;
+using ClinicaDental.Web.Data;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
-
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaDental.Web.Services
@@ -22,12 +28,17 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
-        public IEnumerable<Pago> ObtenerTodos(Guid? idPaciente = null)
+        public IEnumerable<PagoRespuesta> ObtenerTodos(Guid? idPaciente = null)
         {
             var query = _context.pagos
                 .AsNoTracking()
                 .Include(p => p.Tratamiento)
                     .ThenInclude(t => t!.Paciente)
+                .Include(p => p.Tratamiento)
+                    .ThenInclude(t => t!.Odontologo)
+                        .ThenInclude(o => o!.Especialidad)
+                .Include(p => p.Tratamiento)
+                    .ThenInclude(t => t!.Cita)
                 .AsQueryable();
 
             if (idPaciente.HasValue)
@@ -35,24 +46,30 @@ namespace ClinicaDental.Web.Services
                 query = query.Where(p => p.Tratamiento!.IdPaciente == idPaciente.Value);
             }
 
-            return query.OrderByDescending(p => p.FechaPago).ToList();
+            return query.OrderByDescending(p => p.FechaPago).ToList().Select(Mapear);
         }
 
-        public Pago? ObtenerPorId(Guid id)
+        public PagoRespuesta? ObtenerPorId(Guid id)
         {
-            return _context.pagos
+            var pago = _context.pagos
                 .AsNoTracking()
                 .Include(p => p.Tratamiento)
                     .ThenInclude(t => t!.Paciente)
+                .Include(p => p.Tratamiento)
+                    .ThenInclude(t => t!.Odontologo)
+                        .ThenInclude(o => o!.Especialidad)
+                .Include(p => p.Tratamiento)
+                    .ThenInclude(t => t!.Cita)
                 .FirstOrDefault(p => p.Id == id);
+            return pago == null ? null : Mapear(pago);
         }
 
-        public Pago registrar(PagoDto pagoDto)
+        public PagoRespuesta registrar(PagoDto pagoDto)
         {
             var pago = new Pago
             {
                 Id = Guid.NewGuid(),
-                IdTratamiento = pagoDto.IdTratamiento,
+                IdTratamiento = pagoDto.IdTratamiento!.Value,
                 Monto = pagoDto.Monto,
                 FechaPago = Ahora,
                 Metodo = pagoDto.Metodo,
@@ -63,10 +80,10 @@ namespace ClinicaDental.Web.Services
             _context.pagos.Add(pago);
             _context.SaveChanges();
 
-            return pago;
+            return ObtenerPorId(pago.Id)!;
         }
 
-        public IEnumerable<DeudaDto> ConsultarDeudas(Guid? idPaciente = null)
+        public IEnumerable<DeudaRespuesta> ConsultarDeudas(Guid? idPaciente = null)
         {
             var queryTratamientos = _context.tratamientos
                 .AsNoTracking()
@@ -97,7 +114,7 @@ namespace ClinicaDental.Web.Services
                 .OrderBy(x => x.Tratamiento.Paciente?.Apellidos)
                 .ThenBy(x => x.Tratamiento.Paciente?.Nombres)
                 .ThenBy(x => x.Tratamiento.Fecha)
-                .Select(x => new DeudaDto
+                .Select(x => new DeudaRespuesta
                 {
                     IdTratamiento = x.Tratamiento.Id,
                     IdPaciente = x.Tratamiento.IdPaciente,
@@ -130,7 +147,7 @@ namespace ClinicaDental.Web.Services
             return costo - pagado;
         }
 
-        public ComprobanteDto? ObtenerComprobante(Guid idPago)
+        public ComprobanteRespuesta? ObtenerComprobante(Guid idPago)
         {
             var pago = _context.pagos
                 .AsNoTracking()
@@ -150,14 +167,13 @@ namespace ClinicaDental.Web.Services
                 .Where(p => p.IdTratamiento == pago.IdTratamiento)
                 .ToList();
 
-            // Lo pagado hasta este pago inclusive (el orden lo da la fecha y, si empatan, el comprobante).
             var pagadoHastaEstePago = pagosDelTratamiento
                 .Where(p => p.FechaPago < pago.FechaPago
                          || (p.FechaPago == pago.FechaPago
                              && string.CompareOrdinal(p.NumeroComprobante, pago.NumeroComprobante) <= 0))
                 .Sum(p => p.Monto);
 
-            return new ComprobanteDto
+            return new ComprobanteRespuesta
             {
                 IdPago = pago.Id,
                 NumeroComprobante = pago.NumeroComprobante,
@@ -186,7 +202,7 @@ namespace ClinicaDental.Web.Services
 
         public bool MontoValido(decimal monto)
         {
-            return monto > 0 && decimal.Round(monto, 2) == monto;
+            return monto > 0 && monto <= 1000000m && decimal.Round(monto, 2) == monto;
         }
 
         public bool MetodoValido(MetodoPago metodo)
@@ -199,7 +215,6 @@ namespace ClinicaDental.Web.Services
             return monto <= ObtenerSaldoPendiente(idTratamiento);
         }
 
-        // CMP-000001, CMP-000002... correlativo al mayor comprobante existente.
         private string GenerarNumeroComprobante()
         {
             var ultimo = _context.pagos
@@ -216,6 +231,53 @@ namespace ClinicaDental.Web.Services
             }
 
             return $"{PrefijoComprobante}{numero + 1:D6}";
+        }
+
+        private static PagoRespuesta Mapear(Pago p)
+        {
+            return new PagoRespuesta
+            {
+                Id = p.Id,
+                IdTratamiento = p.IdTratamiento,
+                Tratamiento = p.Tratamiento == null ? null : new TratamientoRespuesta
+                {
+                    Id = p.Tratamiento.Id,
+                    IdPaciente = p.Tratamiento.IdPaciente,
+                    Paciente = p.Tratamiento.Paciente == null ? null : new PacienteRespuesta
+                    {
+                        Id = p.Tratamiento.Paciente.Id, Nombres = p.Tratamiento.Paciente.Nombres, Apellidos = p.Tratamiento.Paciente.Apellidos,
+                        CI = p.Tratamiento.Paciente.CI, FechaNacimiento = p.Tratamiento.Paciente.FechaNacimiento, Telefono = p.Tratamiento.Paciente.Telefono,
+                        Email = p.Tratamiento.Paciente.Email, Direccion = p.Tratamiento.Paciente.Direccion, FechaRegistro = p.Tratamiento.Paciente.FechaRegistro,
+                        NombreCompleto = p.Tratamiento.Paciente.NombreCompleto
+                    },
+                    IdOdontologo = p.Tratamiento.IdOdontologo,
+                    Odontologo = p.Tratamiento.Odontologo == null ? null : new OdontologoRespuesta
+                    {
+                        Id = p.Tratamiento.Odontologo.Id, Nombres = p.Tratamiento.Odontologo.Nombres, Apellidos = p.Tratamiento.Odontologo.Apellidos,
+                        Matricula = p.Tratamiento.Odontologo.Matricula, Telefono = p.Tratamiento.Odontologo.Telefono, Email = p.Tratamiento.Odontologo.Email,
+                        IdEspecialidad = p.Tratamiento.Odontologo.IdEspecialidad, Activo = p.Tratamiento.Odontologo.Activo, NombreCompleto = p.Tratamiento.Odontologo.NombreCompleto,
+                        Especialidad = p.Tratamiento.Odontologo.Especialidad == null ? null : new EspecialidadRespuesta { Id = p.Tratamiento.Odontologo.Especialidad.Id, Nombre = p.Tratamiento.Odontologo.Especialidad.Nombre, Descripcion = p.Tratamiento.Odontologo.Especialidad.Descripcion },
+                        Horarios = new List<HorarioRespuesta>()
+                    },
+                    IdCita = p.Tratamiento.IdCita,
+                    Cita = p.Tratamiento.Cita == null ? null : new CitaRespuesta
+                    {
+                        Id = p.Tratamiento.Cita.Id, IdPaciente = p.Tratamiento.Cita.IdPaciente, IdOdontologo = p.Tratamiento.Cita.IdOdontologo,
+                        Fecha = p.Tratamiento.Cita.Fecha, Hora = p.Tratamiento.Cita.Hora, DuracionMinutos = p.Tratamiento.Cita.DuracionMinutos,
+                        Motivo = p.Tratamiento.Cita.Motivo, Estado = p.Tratamiento.Cita.Estado, MotivoCancelacion = p.Tratamiento.Cita.MotivoCancelacion,
+                        FechaRegistro = p.Tratamiento.Cita.FechaRegistro, HoraFin = p.Tratamiento.Cita.HoraFin, EstaVigente = p.Tratamiento.Cita.EstaVigente
+                    },
+                    Tipo = p.Tratamiento.Tipo,
+                    Fecha = p.Tratamiento.Fecha,
+                    Costo = p.Tratamiento.Costo,
+                    Observaciones = p.Tratamiento.Observaciones
+                },
+                Monto = p.Monto,
+                FechaPago = p.FechaPago,
+                Metodo = p.Metodo,
+                NumeroComprobante = p.NumeroComprobante,
+                Observacion = p.Observacion
+            };
         }
     }
 }

@@ -1,8 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ClinicaDental.Contrato.DTOs.Auth;
+using ClinicaDental.Contrato.Respuestas.Auth;
 using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.Auth;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using ClinicaDental.Web.Services.Seguridad;
@@ -11,12 +12,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ClinicaDental.Web.Services
 {
-    /// <summary>
-    /// Autenticación y gestión de usuarios.
-    /// Seguridad aplicada: contraseñas con PBKDF2 + sal, bloqueo temporal tras intentos fallidos,
-    /// mensaje genérico ante credenciales inválidas (no revela si el usuario existe),
-    /// tokens JWT firmados con HMAC-SHA256 y con expiración.
-    /// </summary>
     public class AuthServicio : IAuth
     {
         public const int MaximoIntentos = 5;
@@ -42,7 +37,6 @@ namespace ClinicaDental.Web.Services
 
             if (usuario == null)
             {
-                // Se calcula un hash igualmente para que el tiempo de respuesta no revele si el usuario existe.
                 HasherContrasena.Hashear(dto.Contrasena);
                 return (ResultadoLogin.CredencialesInvalidas, null);
             }
@@ -110,23 +104,23 @@ namespace ClinicaDental.Web.Services
             };
         }
 
-        public IEnumerable<UsuarioRespuestaDto> ObtenerUsuarios()
+        public IEnumerable<UsuarioRespuesta> ObtenerUsuarios()
         {
             return _context.usuarios
                 .AsNoTracking()
                 .OrderBy(u => u.NombreCompleto)
                 .ToList()
-                .Select(ARespuesta)
+                .Select(Mapear)
                 .ToList();
         }
 
-        public UsuarioRespuestaDto? ObtenerUsuario(Guid id)
+        public UsuarioRespuesta? ObtenerUsuario(Guid id)
         {
             var usuario = _context.usuarios.AsNoTracking().FirstOrDefault(u => u.Id == id);
-            return usuario == null ? null : ARespuesta(usuario);
+            return usuario == null ? null : Mapear(usuario);
         }
 
-        public UsuarioRespuestaDto Registrar(RegistrarUsuarioDto dto)
+        public UsuarioRespuesta Registrar(RegistrarUsuarioDto dto)
         {
             var usuario = new Usuario
             {
@@ -140,10 +134,10 @@ namespace ClinicaDental.Web.Services
             };
             _context.usuarios.Add(usuario);
             _context.SaveChanges();
-            return ARespuesta(usuario);
+            return Mapear(usuario);
         }
 
-        public UsuarioRespuestaDto CambiarEstado(Guid id, bool activo)
+        public UsuarioRespuesta CambiarEstado(Guid id, bool activo)
         {
             var usuario = _context.usuarios.First(u => u.Id == id);
             usuario.Activo = activo;
@@ -153,7 +147,7 @@ namespace ClinicaDental.Web.Services
                 usuario.IntentosFallidos = 0;
             }
             _context.SaveChanges();
-            return ARespuesta(usuario);
+            return Mapear(usuario);
         }
 
         public void CambiarContrasena(Guid id, string contrasenaNueva)
@@ -173,7 +167,6 @@ namespace ClinicaDental.Web.Services
 
         public bool RolValido(string rol) => Roles.Todos.Contains(rol);
 
-        /// <summary>Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.</summary>
         public bool ContrasenaSegura(string contrasena)
         {
             return contrasena.Length >= 8
@@ -196,7 +189,7 @@ namespace ClinicaDental.Web.Services
             return !_context.usuarios.Any(u => u.Id != id && u.Rol == Roles.Administrador && u.Activo);
         }
 
-        private UsuarioRespuestaDto ARespuesta(Usuario u) => new()
+        private UsuarioRespuesta Mapear(Usuario u) => new()
         {
             Id = u.Id,
             NombreUsuario = u.NombreUsuario,

@@ -1,4 +1,4 @@
-using ClinicaDental.Web.DTOs.Odontologo;
+using ClinicaDental.Contrato.DTOs.Odontologo;
 using ClinicaDental.Web.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -59,7 +59,7 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("Nombres, apellidos, matrícula y teléfono son obligatorios.");
             }
 
-            if (!_odontologoServicio.ExisteEspecialidad(odontologoDto.IdEspecialidad))
+            if (!_odontologoServicio.ExisteEspecialidad(odontologoDto.IdEspecialidad!.Value))
             {
                 return BadRequest("La especialidad seleccionada no existe.");
             }
@@ -81,7 +81,7 @@ namespace ClinicaDental.Web.Controllers
         }
 
         [HttpPut("{id:guid}", Name = "ActualizarOdontologo")]
-        public IActionResult Put(Guid id, [FromBody] ActualizarOdontologoDto odontologoDto)
+        public IActionResult Put(Guid id, [FromBody] OdontologoDto odontologoDto)
         {
             if (!ModelState.IsValid)
             {
@@ -102,7 +102,7 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("Nombres, apellidos, matrícula y teléfono son obligatorios.");
             }
 
-            if (!_odontologoServicio.ExisteEspecialidad(odontologoDto.IdEspecialidad))
+            if (!_odontologoServicio.ExisteEspecialidad(odontologoDto.IdEspecialidad!.Value))
             {
                 return BadRequest("La especialidad seleccionada no existe.");
             }

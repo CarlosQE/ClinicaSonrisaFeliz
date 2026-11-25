@@ -1,14 +1,14 @@
-using ClinicaDental.Web.DTOs.Tratamiento;
-using ClinicaDental.Web.Models;
+using ClinicaDental.Contrato.DTOs.Tratamiento;
+using ClinicaDental.Contrato.Respuestas.Tratamiento;
 
 namespace ClinicaDental.Web.Interfaces
 {
     public interface ITratamiento
     {
-        IEnumerable<Tratamiento> ObtenerTodos(Guid? idPaciente = null, TipoTratamiento? tipo = null, Guid? idOdontologo = null);
-        Tratamiento? ObtenerPorId(Guid id);
-        Tratamiento Registrar(TratamientoDto tratamientoDto);
-        Tratamiento ActualizarObservaciones(Guid id, string observaciones);
+        IEnumerable<TratamientoRespuesta> ObtenerTodos(Guid? idPaciente = null, TipoTratamiento? tipo = null, Guid? idOdontologo = null);
+        TratamientoRespuesta? ObtenerPorId(Guid id);
+        TratamientoRespuesta Registrar(TratamientoDto tratamientoDto);
+        TratamientoRespuesta ActualizarObservaciones(Guid id, string observaciones);
         void Eliminar(Guid id);
 
         bool ExisteTratamiento(Guid id);

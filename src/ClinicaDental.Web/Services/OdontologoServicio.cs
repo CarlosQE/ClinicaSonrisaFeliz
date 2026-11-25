@@ -1,14 +1,14 @@
+using ClinicaDental.Contrato.DTOs.Odontologo;
+using ClinicaDental.Contrato.Respuestas.Especialidad;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
+using ClinicaDental.Contrato.Respuestas.Odontologo;
 using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.Odontologo;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaDental.Web.Services
 {
-    /// <summary>
-    /// Parte A del módulo 2: registro, actualización, consulta y estado de odontólogos.
-    /// </summary>
     public class OdontologoServicio : IOdontologo
     {
         private readonly BaseDatos _context;
@@ -22,7 +22,7 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
-        public IEnumerable<Odontologo> ObtenerTodos(bool? activo = null, Guid? idEspecialidad = null)
+        public IEnumerable<OdontologoRespuesta> ObtenerTodos(bool? activo = null, Guid? idEspecialidad = null)
         {
             var query = _context.odontologos
                 .Include(o => o.Especialidad)
@@ -39,21 +39,34 @@ namespace ClinicaDental.Web.Services
                 query = query.Where(o => o.IdEspecialidad == idEspecialidad.Value);
             }
 
-            return query
+            var odontologos = query
                 .OrderBy(o => o.Apellidos)
                 .ThenBy(o => o.Nombres)
                 .ToList();
+
+            var ids = odontologos.Select(o => o.Id).ToList();
+            var horarios = _context.horariosOdontologo
+                .AsNoTracking()
+                .Where(h => ids.Contains(h.IdOdontologo))
+                .ToList()
+                .GroupBy(h => h.IdOdontologo)
+                .ToDictionary(g => g.Key, g => g.Select(MapearHorario).ToList());
+
+            return odontologos.Select(o => Mapear(o, horarios.GetValueOrDefault(o.Id) ?? new List<HorarioRespuesta>()));
         }
 
-        public Odontologo? ObtenerPorId(Guid id)
+        public OdontologoRespuesta? ObtenerPorId(Guid id)
         {
-            return _context.odontologos
+            var o = _context.odontologos
                 .Include(o => o.Especialidad)
                 .AsNoTracking()
                 .FirstOrDefault(o => o.Id == id);
+            if (o == null) return null;
+            var horarios = _context.horariosOdontologo.AsNoTracking().Where(h => h.IdOdontologo == id).ToList().Select(MapearHorario).ToList();
+            return Mapear(o, horarios);
         }
 
-        public Odontologo Registrar(OdontologoDto odontologoDto)
+        public OdontologoRespuesta Registrar(OdontologoDto odontologoDto)
         {
             var odontologo = new Odontologo
             {
@@ -64,16 +77,16 @@ namespace ClinicaDental.Web.Services
                 Telefono = odontologoDto.Telefono.Trim(),
                 Email = string.IsNullOrWhiteSpace(odontologoDto.Email) ? null : odontologoDto.Email.Trim(),
                 Activo = true,
-                IdEspecialidad = odontologoDto.IdEspecialidad
+                IdEspecialidad = odontologoDto.IdEspecialidad!.Value
             };
 
             _context.odontologos.Add(odontologo);
             _context.SaveChanges();
 
-            return odontologo;
+            return ObtenerPorId(odontologo.Id)!;
         }
 
-        public Odontologo Actualizar(Guid id, ActualizarOdontologoDto odontologoDto)
+        public OdontologoRespuesta Actualizar(Guid id, OdontologoDto odontologoDto)
         {
             var odontologo = _context.odontologos.First(o => o.Id == id);
 
@@ -82,20 +95,20 @@ namespace ClinicaDental.Web.Services
             odontologo.Matricula = odontologoDto.Matricula.Trim();
             odontologo.Telefono = odontologoDto.Telefono.Trim();
             odontologo.Email = string.IsNullOrWhiteSpace(odontologoDto.Email) ? null : odontologoDto.Email.Trim();
-            odontologo.IdEspecialidad = odontologoDto.IdEspecialidad;
+            odontologo.IdEspecialidad = odontologoDto.IdEspecialidad!.Value;
 
             _context.SaveChanges();
 
-            return odontologo;
+            return ObtenerPorId(id)!;
         }
 
-        public Odontologo CambiarEstado(Guid id, bool activo)
+        public OdontologoRespuesta CambiarEstado(Guid id, bool activo)
         {
             var odontologo = _context.odontologos.First(o => o.Id == id);
             odontologo.Activo = activo;
             _context.SaveChanges();
 
-            return odontologo;
+            return ObtenerPorId(id)!;
         }
 
         public bool DatosObligatoriosValidos(string nombres, string apellidos, string matricula, string telefono)
@@ -136,5 +149,34 @@ namespace ClinicaDental.Web.Services
                 c.Estado != EstadoCita.Cancelada &&
                 (c.Fecha > hoy || (c.Fecha == hoy && c.Hora > horaActual)));
         }
+
+        private static OdontologoRespuesta Mapear(Odontologo o, List<HorarioRespuesta> horarios) => new()
+        {
+            Id = o.Id,
+            Nombres = o.Nombres,
+            Apellidos = o.Apellidos,
+            Matricula = o.Matricula,
+            Telefono = o.Telefono,
+            Email = o.Email,
+            IdEspecialidad = o.IdEspecialidad,
+            Activo = o.Activo,
+            NombreCompleto = o.NombreCompleto,
+            Especialidad = o.Especialidad == null ? null : new EspecialidadRespuesta
+            {
+                Id = o.Especialidad.Id,
+                Nombre = o.Especialidad.Nombre,
+                Descripcion = o.Especialidad.Descripcion
+            },
+            Horarios = horarios
+        };
+
+        private static HorarioRespuesta MapearHorario(HorarioOdontologo h) => new()
+        {
+            Id = h.Id,
+            IdOdontologo = h.IdOdontologo,
+            DiaSemana = h.DiaSemana,
+            HoraInicio = h.HoraInicio,
+            HoraFin = h.HoraFin
+        };
     }
 }

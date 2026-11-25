@@ -1,6 +1,5 @@
-using ClinicaDental.Web.DTOs.Tratamiento;
+using ClinicaDental.Contrato.DTOs.Tratamiento;
 using ClinicaDental.Web.Interfaces;
-using ClinicaDental.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicaDental.Web.Controllers
@@ -59,17 +58,17 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!_tratamientoServicio.ExistePaciente(tratamientoDto.IdPaciente))
+            if (!_tratamientoServicio.ExistePaciente(tratamientoDto.IdPaciente!.Value))
             {
                 return BadRequest("El paciente seleccionado no existe.");
             }
 
-            if (!_tratamientoServicio.ExisteOdontologo(tratamientoDto.IdOdontologo))
+            if (!_tratamientoServicio.ExisteOdontologo(tratamientoDto.IdOdontologo!.Value))
             {
                 return BadRequest("El odontólogo seleccionado no existe.");
             }
 
-            if (!_tratamientoServicio.OdontologoActivo(tratamientoDto.IdOdontologo))
+            if (!_tratamientoServicio.OdontologoActivo(tratamientoDto.IdOdontologo!.Value))
             {
                 return BadRequest("El odontólogo está inactivo y no puede realizar tratamientos.");
             }
@@ -81,7 +80,7 @@ namespace ClinicaDental.Web.Controllers
 
             if (!_tratamientoServicio.CostoValido(tratamientoDto.Costo))
             {
-                return BadRequest("El costo debe ser mayor a 0 y tener como máximo 2 decimales.");
+                return BadRequest("El costo debe ser mayor a 0, no mayor a 1.000.000 y tener como máximo 2 decimales.");
             }
 
             if (tratamientoDto.Fecha.HasValue && !_tratamientoServicio.FechaValida(tratamientoDto.Fecha.Value))
@@ -97,7 +96,7 @@ namespace ClinicaDental.Web.Controllers
                     return BadRequest("La cita indicada no existe.");
                 }
 
-                if (!_tratamientoServicio.CitaPerteneceAPaciente(idCita.Value, tratamientoDto.IdPaciente))
+                if (!_tratamientoServicio.CitaPerteneceAPaciente(idCita.Value, tratamientoDto.IdPaciente!.Value))
                 {
                     return BadRequest("La cita indicada no pertenece al paciente seleccionado.");
                 }

@@ -1,6 +1,5 @@
-﻿using ClinicaDental.Web.DTOs.Pago;
+﻿using ClinicaDental.Contrato.DTOs.Pago;
 using ClinicaDental.Web.Interfaces;
-using ClinicaDental.Web.Models;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -85,7 +84,7 @@ namespace ClinicaDental.Web.Controllers
 
             if (!_pagoServicio.MontoValido(pagoDto.Monto))
             {
-                return BadRequest("El monto debe ser mayor a 0 y tener como máximo 2 decimales");
+                return BadRequest("El monto debe ser mayor a 0, no mayor a 1.000.000 y tener como máximo 2 decimales");
             }
 
             if (!_pagoServicio.MetodoValido(pagoDto.Metodo))
@@ -93,18 +92,18 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("El método de pago no es válido (0 = Efectivo, 1 = Tarjeta, 2 = Transferencia, 3 = QR)");
             }
 
-            if (!_pagoServicio.ExisteTratamiento(pagoDto.IdTratamiento))
+            if (!_pagoServicio.ExisteTratamiento(pagoDto.IdTratamiento!.Value))
             {
                 return BadRequest("El tratamiento seleccionado no existe");
             }
 
-            var saldo = _pagoServicio.ObtenerSaldoPendiente(pagoDto.IdTratamiento);
+            var saldo = _pagoServicio.ObtenerSaldoPendiente(pagoDto.IdTratamiento!.Value);
             if (saldo <= 0)
             {
                 return BadRequest("El tratamiento ya fue pagado por completo");
             }
 
-            if (!_pagoServicio.MontoNoExcedeSaldo(pagoDto.IdTratamiento, pagoDto.Monto))
+            if (!_pagoServicio.MontoNoExcedeSaldo(pagoDto.IdTratamiento!.Value, pagoDto.Monto))
             {
                 return BadRequest($"El monto excede el saldo pendiente del tratamiento ({saldo} Bs)");
             }

@@ -1,4 +1,4 @@
-using ClinicaDental.Web.DTOs.HorarioOdontologo;
+using ClinicaDental.Contrato.DTOs.HorarioOdontologo;
 using ClinicaDental.Web.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -60,7 +60,7 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("El día de la semana no es válido.");
             }
 
-            if (!_horarioServicio.RangoValido(horarioDto.HoraInicio, horarioDto.HoraFin))
+            if (!_horarioServicio.RangoValido(horarioDto.HoraInicio!.Value, horarioDto.HoraFin!.Value))
             {
                 return BadRequest("La hora de fin debe ser mayor que la hora de inicio.");
             }
@@ -68,8 +68,8 @@ namespace ClinicaDental.Web.Controllers
             if (_horarioServicio.SeSolapa(
                     idOdontologo,
                     horarioDto.DiaSemana,
-                    horarioDto.HoraInicio,
-                    horarioDto.HoraFin))
+                    horarioDto.HoraInicio!.Value,
+                    horarioDto.HoraFin!.Value))
             {
                 return BadRequest("El horario se solapa con otra franja del mismo odontólogo.");
             }
@@ -105,7 +105,7 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("El día de la semana no es válido.");
             }
 
-            if (!_horarioServicio.RangoValido(horarioDto.HoraInicio, horarioDto.HoraFin))
+            if (!_horarioServicio.RangoValido(horarioDto.HoraInicio!.Value, horarioDto.HoraFin!.Value))
             {
                 return BadRequest("La hora de fin debe ser mayor que la hora de inicio.");
             }
@@ -113,8 +113,8 @@ namespace ClinicaDental.Web.Controllers
             if (_horarioServicio.SeSolapa(
                     horario.IdOdontologo,
                     horarioDto.DiaSemana,
-                    horarioDto.HoraInicio,
-                    horarioDto.HoraFin,
+                    horarioDto.HoraInicio!.Value,
+                    horarioDto.HoraFin!.Value,
                     id))
             {
                 return BadRequest("El horario se solapa con otra franja del mismo odontólogo.");

@@ -1,4 +1,5 @@
-using ClinicaDental.Contrato.Respuestas;
+using ClinicaDental.Contrato.Respuestas.Cita;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
 
 namespace ClinicaDental.ClienteBlazor.Servicios
 {

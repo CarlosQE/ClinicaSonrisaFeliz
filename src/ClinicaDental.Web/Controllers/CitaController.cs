@@ -1,6 +1,5 @@
-using ClinicaDental.Web.DTOs.Cita;
+using ClinicaDental.Contrato.DTOs.Cita;
 using ClinicaDental.Web.Interfaces;
-using ClinicaDental.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicaDental.Web.Controllers
@@ -59,17 +58,17 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!_citaServicio.ExistePaciente(citaDto.IdPaciente))
+            if (!_citaServicio.ExistePaciente(citaDto.IdPaciente!.Value))
             {
                 return BadRequest("El paciente seleccionado no existe");
             }
 
-            if (!_citaServicio.ExisteOdontologo(citaDto.IdOdontologo))
+            if (!_citaServicio.ExisteOdontologo(citaDto.IdOdontologo!.Value))
             {
                 return BadRequest("El odontólogo seleccionado no existe");
             }
 
-            if (!_citaServicio.OdontologoActivo(citaDto.IdOdontologo))
+            if (!_citaServicio.OdontologoActivo(citaDto.IdOdontologo!.Value))
             {
                 return BadRequest("El odontólogo está inactivo y no puede recibir citas");
             }
@@ -87,17 +86,17 @@ namespace ClinicaDental.Web.Controllers
                 return BadRequest("La cita debe programarse para una fecha y hora futura");
             }
 
-            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
+            if (!_citaServicio.DentroDeHorario(citaDto.IdOdontologo!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El horario elegido está fuera del horario de trabajo del odontólogo");
             }
 
-            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo, fecha, hora, citaDto.DuracionMinutos))
+            if (!_citaServicio.OdontologoDisponible(citaDto.IdOdontologo!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El odontólogo ya tiene una cita en ese horario");
             }
 
-            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente, fecha, hora, citaDto.DuracionMinutos))
+            if (!_citaServicio.PacienteDisponible(citaDto.IdPaciente!.Value, fecha, hora, citaDto.DuracionMinutos))
             {
                 return BadRequest("El paciente ya tiene otra cita en ese horario");
             }

@@ -1,4 +1,4 @@
-using ClinicaDental.Web.DTOs.Especialidad;
+using ClinicaDental.Contrato.DTOs.Especialidad;
 using ClinicaDental.Web.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,14 +1,12 @@
+using ClinicaDental.Contrato.DTOs.Especialidad;
+using ClinicaDental.Contrato.Respuestas.Especialidad;
 using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.Especialidad;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaDental.Web.Services
 {
-    /// <summary>
-    /// Parte B del módulo 2: CRUD de especialidades.
-    /// </summary>
     public class EspecialidadServicio : IEspecialidad
     {
         private readonly BaseDatos _context;
@@ -18,22 +16,22 @@ namespace ClinicaDental.Web.Services
             _context = context;
         }
 
-        public IEnumerable<Especialidad> ObtenerTodas()
+        public IEnumerable<EspecialidadRespuesta> ObtenerTodas()
         {
             return _context.especialidades
                 .AsNoTracking()
                 .OrderBy(e => e.Nombre)
-                .ToList();
+                .ToList()
+                .Select(Mapear);
         }
 
-        public Especialidad? ObtenerPorId(Guid id)
+        public EspecialidadRespuesta? ObtenerPorId(Guid id)
         {
-            return _context.especialidades
-                .AsNoTracking()
-                .FirstOrDefault(e => e.Id == id);
+            var e = _context.especialidades.AsNoTracking().FirstOrDefault(e => e.Id == id);
+            return e == null ? null : Mapear(e);
         }
 
-        public Especialidad Registrar(EspecialidadDto especialidadDto)
+        public EspecialidadRespuesta Registrar(EspecialidadDto especialidadDto)
         {
             var especialidad = new Especialidad
             {
@@ -47,10 +45,10 @@ namespace ClinicaDental.Web.Services
             _context.especialidades.Add(especialidad);
             _context.SaveChanges();
 
-            return especialidad;
+            return Mapear(especialidad);
         }
 
-        public Especialidad Actualizar(Guid id, EspecialidadDto especialidadDto)
+        public EspecialidadRespuesta Actualizar(Guid id, EspecialidadDto especialidadDto)
         {
             var especialidad = _context.especialidades.First(e => e.Id == id);
 
@@ -61,7 +59,7 @@ namespace ClinicaDental.Web.Services
 
             _context.SaveChanges();
 
-            return especialidad;
+            return Mapear(especialidad);
         }
 
         public void Eliminar(Guid id)
@@ -89,5 +87,12 @@ namespace ClinicaDental.Web.Services
         {
             return _context.odontologos.Any(o => o.IdEspecialidad == idEspecialidad);
         }
+
+        private static EspecialidadRespuesta Mapear(Especialidad e) => new()
+        {
+            Id = e.Id,
+            Nombre = e.Nombre,
+            Descripcion = e.Descripcion
+        };
     }
 }

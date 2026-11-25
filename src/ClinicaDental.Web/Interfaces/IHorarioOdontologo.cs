@@ -1,17 +1,14 @@
-using ClinicaDental.Web.DTOs.HorarioOdontologo;
-using ClinicaDental.Web.Models;
+using ClinicaDental.Contrato.DTOs.HorarioOdontologo;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
 
 namespace ClinicaDental.Web.Interfaces
 {
-    /// <summary>
-    /// Parte B del módulo 2: gestión de horarios de trabajo de los odontólogos.
-    /// </summary>
     public interface IHorarioOdontologo
     {
-        IEnumerable<HorarioOdontologo> ObtenerPorOdontologo(Guid idOdontologo);
-        HorarioOdontologo? ObtenerPorId(Guid id);
-        HorarioOdontologo Registrar(Guid idOdontologo, HorarioOdontologoDto horarioDto);
-        HorarioOdontologo Actualizar(Guid id, HorarioOdontologoDto horarioDto);
+        IEnumerable<HorarioRespuesta> ObtenerPorOdontologo(Guid idOdontologo);
+        HorarioRespuesta? ObtenerPorId(Guid id);
+        HorarioRespuesta Registrar(Guid idOdontologo, HorarioOdontologoDto horarioDto);
+        HorarioRespuesta Actualizar(Guid id, HorarioOdontologoDto horarioDto);
         void Eliminar(Guid id);
 
         bool Existe(Guid id);

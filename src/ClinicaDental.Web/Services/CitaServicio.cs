@@ -1,5 +1,10 @@
+using ClinicaDental.Contrato.DTOs.Cita;
+using ClinicaDental.Contrato.Respuestas.Cita;
+using ClinicaDental.Contrato.Respuestas.Especialidad;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
+using ClinicaDental.Contrato.Respuestas.Odontologo;
+using ClinicaDental.Contrato.Respuestas.Paciente;
 using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.Cita;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using Microsoft.EntityFrameworkCore;
@@ -22,28 +27,35 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
-        public IEnumerable<Cita> ObtenerTodos()
+        public IEnumerable<CitaRespuesta> ObtenerTodos()
         {
             return _context.citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Odontologo)
+                    .ThenInclude(o => o!.Especialidad)
                 .OrderBy(c => c.Fecha).ThenBy(c => c.Hora)
-                .ToList();
+                .AsNoTracking()
+                .ToList()
+                .Select(Mapear);
         }
 
-        public Cita? ObtenerPorId(Guid id)
+        public CitaRespuesta? ObtenerPorId(Guid id)
         {
-            return _context.citas
+            var cita = _context.citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Odontologo)
+                    .ThenInclude(o => o!.Especialidad)
+                .AsNoTracking()
                 .FirstOrDefault(c => c.Id == id);
+            return cita == null ? null : Mapear(cita);
         }
 
-        public IEnumerable<Cita> ObtenerAgendaDiaria(DateOnly fecha, Guid? idOdontologo = null, bool incluirCanceladas = false)
+        public IEnumerable<CitaRespuesta> ObtenerAgendaDiaria(DateOnly fecha, Guid? idOdontologo = null, bool incluirCanceladas = false)
         {
             var query = _context.citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Odontologo)
+                    .ThenInclude(o => o!.Especialidad)
                 .Where(c => c.Fecha == fecha);
 
             if (idOdontologo.HasValue)
@@ -56,16 +68,20 @@ namespace ClinicaDental.Web.Services
                 query = query.Where(c => c.Estado != EstadoCita.Cancelada);
             }
 
-            return query.OrderBy(c => c.Hora).ToList();
+            return query
+                .OrderBy(c => c.Hora)
+                .AsNoTracking()
+                .ToList()
+                .Select(Mapear);
         }
 
-        public Cita agendar(CitaDto citaDto)
+        public CitaRespuesta agendar(CitaDto citaDto)
         {
             var cita = new Cita
             {
                 Id = Guid.NewGuid(),
-                IdPaciente = citaDto.IdPaciente,
-                IdOdontologo = citaDto.IdOdontologo,
+                IdPaciente = citaDto.IdPaciente!.Value,
+                IdOdontologo = citaDto.IdOdontologo!.Value,
                 Fecha = citaDto.Fecha!.Value,
                 Hora = citaDto.Hora!.Value,
                 DuracionMinutos = citaDto.DuracionMinutos,
@@ -77,30 +93,31 @@ namespace ClinicaDental.Web.Services
             _context.citas.Add(cita);
             _context.SaveChanges();
 
-            return cita;
+            return ObtenerPorId(cita.Id)!;
         }
 
-        public Cita reprogramar(Guid id, DateOnly nuevaFecha, TimeOnly nuevaHora, Guid? idNuevoOdontologo)
+        public CitaRespuesta reprogramar(Guid id, DateOnly nuevaFecha, TimeOnly nuevaHora, Guid? idNuevoOdontologo)
         {
             var cita = _context.citas.First(c => c.Id == id);
 
             cita.Fecha = nuevaFecha;
             cita.Hora = nuevaHora;
-            cita.IdOdontologo = idNuevoOdontologo ?? cita.IdOdontologo;
+            if (idNuevoOdontologo.HasValue)
+            {
+                cita.IdOdontologo = idNuevoOdontologo.Value;
+            }
             cita.Estado = EstadoCita.Reprogramada;
 
             _context.SaveChanges();
 
-            return cita;
+            return ObtenerPorId(id)!;
         }
 
         public void cancelar(Guid id, string motivo)
         {
             var cita = _context.citas.First(c => c.Id == id);
-
             cita.Estado = EstadoCita.Cancelada;
             cita.MotivoCancelacion = motivo.Trim();
-
             _context.SaveChanges();
         }
 
@@ -126,52 +143,123 @@ namespace ClinicaDental.Web.Services
 
         public bool FechaFutura(DateOnly fecha, TimeOnly hora)
         {
-            return fecha.ToDateTime(hora) > Ahora;
+            var fechaHora = fecha.ToDateTime(hora);
+            return fechaHora > Ahora;
         }
 
         public bool DentroDeHorario(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos)
         {
-            var finDateTime = fecha.ToDateTime(hora).AddMinutes(duracionMinutos);
-
-            if (DateOnly.FromDateTime(finDateTime) != fecha)
-            {
-                return false;
-            }
-
-            var horaFin = TimeOnly.FromDateTime(finDateTime);
+            var horaFin = hora.AddMinutes(duracionMinutos);
             var dia = fecha.DayOfWeek;
 
             return _context.horariosOdontologo.Any(h =>
                 h.IdOdontologo == idOdontologo &&
                 h.DiaSemana == dia &&
                 h.HoraInicio <= hora &&
-                horaFin <= h.HoraFin);
+                h.HoraFin >= horaFin);
         }
 
         public bool OdontologoDisponible(Guid idOdontologo, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null)
         {
-            return !HayChoque(c => c.IdOdontologo == idOdontologo, fecha, hora, duracionMinutos, excluirIdCita);
+            var nuevaInicio = hora;
+            var nuevaFin = hora.AddMinutes(duracionMinutos);
+
+            var citasDelDia = _context.citas
+                .Where(c => c.IdOdontologo == idOdontologo
+                         && c.Fecha == fecha
+                         && c.Estado != EstadoCita.Cancelada
+                         && (!excluirIdCita.HasValue || c.Id != excluirIdCita.Value))
+                .Select(c => new { c.Hora, c.DuracionMinutos })
+                .ToList();
+
+            return !citasDelDia.Any(c =>
+            {
+                var existenteInicio = c.Hora;
+                var existenteFin = c.Hora.AddMinutes(c.DuracionMinutos);
+                return nuevaInicio < existenteFin && nuevaFin > existenteInicio;
+            });
         }
 
         public bool PacienteDisponible(Guid idPaciente, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita = null)
         {
-            return !HayChoque(c => c.IdPaciente == idPaciente, fecha, hora, duracionMinutos, excluirIdCita);
+            var nuevaInicio = hora;
+            var nuevaFin = hora.AddMinutes(duracionMinutos);
+
+            var citasDelDia = _context.citas
+                .Where(c => c.IdPaciente == idPaciente
+                         && c.Fecha == fecha
+                         && c.Estado != EstadoCita.Cancelada
+                         && (!excluirIdCita.HasValue || c.Id != excluirIdCita.Value))
+                .Select(c => new { c.Hora, c.DuracionMinutos })
+                .ToList();
+
+            return !citasDelDia.Any(c =>
+            {
+                var existenteInicio = c.Hora;
+                var existenteFin = c.Hora.AddMinutes(c.DuracionMinutos);
+                return nuevaInicio < existenteFin && nuevaFin > existenteInicio;
+            });
         }
 
-        private bool HayChoque(System.Linq.Expressions.Expression<Func<Cita, bool>> filtro, DateOnly fecha, TimeOnly hora, int duracionMinutos, Guid? excluirIdCita)
+        private static CitaRespuesta Mapear(Cita c)
         {
-            var horaFin = hora.AddMinutes(duracionMinutos);
-
-            var query = _context.citas.AsNoTracking()
-                .Where(filtro)
-                .Where(c => c.Fecha == fecha && c.Estado != EstadoCita.Cancelada);
-
-            if (excluirIdCita.HasValue)
+            return new CitaRespuesta
             {
-                query = query.Where(c => c.Id != excluirIdCita.Value);
-            }
+                Id = c.Id,
+                IdPaciente = c.IdPaciente,
+                Paciente = c.Paciente == null ? null : MapearPaciente(c.Paciente),
+                IdOdontologo = c.IdOdontologo,
+                Odontologo = c.Odontologo == null ? null : MapearOdontologo(c.Odontologo),
+                Fecha = c.Fecha,
+                Hora = c.Hora,
+                DuracionMinutos = c.DuracionMinutos,
+                Motivo = c.Motivo,
+                Estado = c.Estado,
+                MotivoCancelacion = c.MotivoCancelacion,
+                FechaRegistro = c.FechaRegistro,
+                HoraFin = c.HoraFin,
+                EstaVigente = c.EstaVigente
+            };
+        }
 
-            return query.ToList().Any(c => hora < c.HoraFin && c.Hora < horaFin);
+        private static PacienteRespuesta MapearPaciente(Paciente p)
+        {
+            return new PacienteRespuesta
+            {
+                Id = p.Id,
+                Nombres = p.Nombres,
+                Apellidos = p.Apellidos,
+                CI = p.CI,
+                FechaNacimiento = p.FechaNacimiento,
+                Telefono = p.Telefono,
+                Email = p.Email,
+                Direccion = p.Direccion,
+                FechaRegistro = p.FechaRegistro,
+                NombreCompleto = p.NombreCompleto
+            };
+        }
+
+        private static OdontologoRespuesta MapearOdontologo(Odontologo o)
+        {
+            return new OdontologoRespuesta
+            {
+                Id = o.Id,
+                Nombres = o.Nombres,
+                Apellidos = o.Apellidos,
+                Matricula = o.Matricula,
+                Telefono = o.Telefono,
+                Email = o.Email,
+                IdEspecialidad = o.IdEspecialidad,
+                Activo = o.Activo,
+                NombreCompleto = o.NombreCompleto,
+                Especialidad = o.Especialidad == null ? null : new EspecialidadRespuesta
+                {
+                    Id = o.Especialidad.Id,
+                    Nombre = o.Especialidad.Nombre,
+                    Descripcion = o.Especialidad.Descripcion
+                },
+                Horarios = new List<HorarioRespuesta>()
+            };
         }
     }
 }

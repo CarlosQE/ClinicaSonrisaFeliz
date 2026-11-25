@@ -1,15 +1,15 @@
-using ClinicaDental.Web.DTOs.Paciente;
-using ClinicaDental.Web.Models;
+using ClinicaDental.Contrato.DTOs.Paciente;
+using ClinicaDental.Contrato.Respuestas.Paciente;
 
 namespace ClinicaDental.Web.Interfaces
 {
     public interface IPaciente
     {
-        IEnumerable<Paciente> ObtenerTodos();
-        Paciente? ObtenerPorId(Guid id);
-        HistorialPacienteDto? ObtenerHistorial(Guid id);
-        Paciente Registrar(PacienteDto pacienteDto);
-        Paciente Actualizar(Guid id, ActualizarPacienteDto pacienteDto);
+        IEnumerable<PacienteRespuesta> ObtenerTodos();
+        PacienteRespuesta? ObtenerPorId(Guid id);
+        HistorialPacienteRespuesta? ObtenerHistorial(Guid id);
+        PacienteRespuesta Registrar(PacienteDto pacienteDto);
+        PacienteRespuesta Actualizar(Guid id, PacienteDto pacienteDto);
         void Eliminar(Guid id);
 
         bool DatosObligatoriosValidos(string nombres, string apellidos, string ci, string telefono, DateOnly fechaNacimiento);

@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using ClinicaDental.Web.DTOs.Auth;
+using ClinicaDental.Contrato.DTOs.Auth;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using Microsoft.AspNetCore.Authorization;

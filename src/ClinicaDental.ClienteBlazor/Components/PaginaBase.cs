@@ -1,5 +1,7 @@
 using ClinicaDental.ClienteBlazor.Servicios;
-using ClinicaDental.Contrato.Respuestas;
+using ClinicaDental.Contrato.Respuestas.Especialidad;
+using ClinicaDental.Contrato.Respuestas.Odontologo;
+using ClinicaDental.Contrato.Respuestas.Paciente;
 using Microsoft.AspNetCore.Components;
 
 namespace ClinicaDental.ClienteBlazor.Components

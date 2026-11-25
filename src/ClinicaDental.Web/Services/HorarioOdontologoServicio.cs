@@ -1,14 +1,12 @@
+using ClinicaDental.Contrato.DTOs.HorarioOdontologo;
+using ClinicaDental.Contrato.Respuestas.HorarioOdontologo;
 using ClinicaDental.Web.Data;
-using ClinicaDental.Web.DTOs.HorarioOdontologo;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaDental.Web.Services
 {
-    /// <summary>
-    /// Parte B del módulo 2: gestión de horarios de trabajo de los odontólogos.
-    /// </summary>
     public class HorarioOdontologoServicio : IHorarioOdontologo
     {
         private readonly BaseDatos _context;
@@ -22,52 +20,51 @@ namespace ClinicaDental.Web.Services
 
         private DateTime Ahora => _reloj.GetLocalNow().DateTime;
 
-        public IEnumerable<HorarioOdontologo> ObtenerPorOdontologo(Guid idOdontologo)
+        public IEnumerable<HorarioRespuesta> ObtenerPorOdontologo(Guid idOdontologo)
         {
             return _context.horariosOdontologo
                 .AsNoTracking()
                 .Where(h => h.IdOdontologo == idOdontologo)
                 .OrderBy(h => h.DiaSemana)
                 .ThenBy(h => h.HoraInicio)
-                .ToList();
+                .ToList()
+                .Select(Mapear);
         }
 
-        public HorarioOdontologo? ObtenerPorId(Guid id)
+        public HorarioRespuesta? ObtenerPorId(Guid id)
         {
-            return _context.horariosOdontologo
-                .Include(h => h.Odontologo)
-                .AsNoTracking()
-                .FirstOrDefault(h => h.Id == id);
+            var h = _context.horariosOdontologo.AsNoTracking().FirstOrDefault(h => h.Id == id);
+            return h == null ? null : Mapear(h);
         }
 
-        public HorarioOdontologo Registrar(Guid idOdontologo, HorarioOdontologoDto horarioDto)
+        public HorarioRespuesta Registrar(Guid idOdontologo, HorarioOdontologoDto horarioDto)
         {
             var horario = new HorarioOdontologo
             {
                 Id = Guid.NewGuid(),
                 IdOdontologo = idOdontologo,
                 DiaSemana = horarioDto.DiaSemana,
-                HoraInicio = horarioDto.HoraInicio,
-                HoraFin = horarioDto.HoraFin
+                HoraInicio = horarioDto.HoraInicio!.Value,
+                HoraFin = horarioDto.HoraFin!.Value
             };
 
             _context.horariosOdontologo.Add(horario);
             _context.SaveChanges();
 
-            return horario;
+            return Mapear(horario);
         }
 
-        public HorarioOdontologo Actualizar(Guid id, HorarioOdontologoDto horarioDto)
+        public HorarioRespuesta Actualizar(Guid id, HorarioOdontologoDto horarioDto)
         {
             var horario = _context.horariosOdontologo.First(h => h.Id == id);
 
             horario.DiaSemana = horarioDto.DiaSemana;
-            horario.HoraInicio = horarioDto.HoraInicio;
-            horario.HoraFin = horarioDto.HoraFin;
+            horario.HoraInicio = horarioDto.HoraInicio!.Value;
+            horario.HoraFin = horarioDto.HoraFin!.Value;
 
             _context.SaveChanges();
 
-            return horario;
+            return Mapear(horario);
         }
 
         public void Eliminar(Guid id)
@@ -138,5 +135,14 @@ namespace ClinicaDental.Web.Services
                 c.Hora < horario.HoraFin &&
                 horario.HoraInicio < c.HoraFin);
         }
+
+        private static HorarioRespuesta Mapear(HorarioOdontologo h) => new()
+        {
+            Id = h.Id,
+            IdOdontologo = h.IdOdontologo,
+            DiaSemana = h.DiaSemana,
+            HoraInicio = h.HoraInicio,
+            HoraFin = h.HoraFin
+        };
     }
 }

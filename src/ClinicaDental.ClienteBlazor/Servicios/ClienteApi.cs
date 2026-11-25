@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using ClinicaDental.Contrato.DTOs;
+using ClinicaDental.Contrato.DTOs.Auth;
 using Microsoft.AspNetCore.Components;
 
 namespace ClinicaDental.ClienteBlazor.Servicios

@@ -3,6 +3,7 @@ using ClinicaDental.Contrato.Respuestas.Especialidad;
 using ClinicaDental.Web.Data;
 using ClinicaDental.Web.Interfaces;
 using ClinicaDental.Web.Models;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicaDental.Web.Services
@@ -87,16 +88,40 @@ namespace ClinicaDental.Web.Services
 
         public bool NombreRepetido(string nombre, Guid? excluirId = null)
         {
-            var nombreNormalizado = (nombre ?? string.Empty).Trim().ToLower();
+            var buscado = Normalizar(nombre);
 
-            return _context.especialidades.Any(e =>
-                e.Nombre.ToLower() == nombreNormalizado &&
-                (!excluirId.HasValue || e.Id != excluirId.Value));
+            // Son muy pocas especialidades: se traen los nombres y se comparan sin tildes ni mayúsculas.
+            return _context.especialidades
+                .AsNoTracking()
+                .Where(e => !excluirId.HasValue || e.Id != excluirId.Value)
+                .Select(e => e.Nombre)
+                .ToList()
+                .Any(n => Normalizar(n) == buscado);
         }
 
         public bool TieneOdontologos(Guid idEspecialidad)
         {
             return _context.odontologos.Any(o => o.IdEspecialidad == idEspecialidad);
+        }
+
+        // Compara sin distinguir mayúsculas, tildes ni espacios sobrantes.
+        private static string Normalizar(string? texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+
+            var descompuesto = texto.Trim().Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in descompuesto)
+            {
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(c);
+                }
+            }
+
+            return System.Text.RegularExpressions.Regex
+                .Replace(sb.ToString(), @"\s+", " ")
+                .ToLowerInvariant();
         }
 
         private static EspecialidadRespuesta Mapear(Especialidad e) => new()

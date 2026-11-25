@@ -1,5 +1,3 @@
-using Bogus;
-
 using ClinicaDental.Web.Data;
 using ClinicaDental.Web.Models;
 
@@ -9,20 +7,15 @@ namespace ClinicaDental.Web.Factories;
 
 public static class EspecialidadFactories
 {
-    private const int CantidadBase = 10;
-    private const int TamanoLote = 200;
-
     public static void Seed(BaseDatos context, int cantidadExtra)
     {
         if (context.especialidades.Any()) return;
 
         context.Database.SetCommandTimeout(120);
-        var extras = Math.Clamp(cantidadExtra, 0, 1000 - CantidadBase);
-        var faker = new Faker("es");
-        var lote = new List<Especialidad>(TamanoLote);
 
-        // Catálogo base: los cuatro ids históricos y seis especialidades adicionales con ids fijos.
-        lote.AddRange(new[]
+        // Catálogo real de especialidades. No se generan extras: el parámetro se conserva
+        // para no cambiar la llamada desde DatosIniciales.
+        var lote = new List<Especialidad>
         {
             new Especialidad
             {
@@ -84,52 +77,10 @@ public static class EspecialidadFactories
                 Nombre = "Medicina Oral",
                 Descripcion = "Diagnóstico de enfermedades de la cavidad oral"
             }
-        });
+        };
 
         context.especialidades.AddRange(lote);
         context.SaveChanges();
         context.ChangeTracker.Clear();
-        lote.Clear();
-
-        for (var i = 1; i <= extras; i++)
-        {
-            lote.Add(new Especialidad
-            {
-                Id = Guid.NewGuid(),
-                Nombre = NombreExtra(i),
-                Descripcion = Recortar(faker.Lorem.Sentence(), 200)
-            });
-
-            if (lote.Count == TamanoLote)
-            {
-                context.especialidades.AddRange(lote);
-                context.SaveChanges();
-                context.ChangeTracker.Clear();
-                lote.Clear();
-            }
-        }
-
-        if (lote.Count > 0)
-        {
-            context.especialidades.AddRange(lote);
-            context.SaveChanges();
-            context.ChangeTracker.Clear();
-        }
-
-        static string NombreExtra(int numero)
-        {
-            var letras = string.Empty;
-            do
-            {
-                var resto = (numero - 1) % 26;
-                letras = (char)('A' + resto) + letras;
-                numero = (numero - 1) / 26;
-            } while (numero > 0);
-
-            return $"Especialidad {letras}";
-        }
-
-        static string Recortar(string valor, int longitud) =>
-            valor.Length <= longitud ? valor : valor[..longitud];
     }
 }

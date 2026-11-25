@@ -22,7 +22,7 @@ else
             @foreach (var t in Enum.GetValues<TipoTratamiento>())
             {
                 <div class="col">
-                    <button type="button" class="tarjeta-borde opcion-tipo w-100 py-3 h-100 @(_tratamiento.Tipo == t ? "seleccionada" : "")" @onclick="() => _tratamiento.Tipo = t" aria-pressed="@(_tratamiento.Tipo == t)">
+                    <button type="button" class="tarjeta-borde opcion-tipo w-100 py-3 h-100 @(_tratamiento.Tipo == t ? "seleccionada" : "")" @onclick="() => SeleccionarTipo(t)" aria-pressed="@(_tratamiento.Tipo == t)">
                         <span class="ms ms-lg d-block mb-1">@Formato.Icono(t)</span>
                         <span class="fw-medium">@Formato.Texto(t)</span>
                     </button>
@@ -32,27 +32,62 @@ else
 
         <div class="formulario-seccion mt-4"><span class="ms">person</span>Paciente y profesional</div>
         <div class="row g-3">
-            <div class="col-md-6 form-floating">
-                <InputSelect id="paciente" class="form-select" @bind-Value="_tratamiento.IdPaciente" @bind-Value:after="CargarCitasDelPaciente">
-                    <option value="">Selecciona…</option>
-                    @foreach (var p in _pacientes)
-                    {
-                        <option value="@p.Id">@p.Apellidos, @p.Nombres · CI @p.CI</option>
-                    }
-                </InputSelect>
-                <label for="paciente">Paciente *</label>
+            <div class="col-md-6">
+                @{
+                    var pacientesVisibles = PacientesVisibles();
+                }
+                @* El atributo form apunta a un formulario inexistente para que Enter en el buscador no envíe el formulario. *@
+                <div class="form-floating mb-2">
+                    <input id="buscar-paciente" class="form-control" type="search" placeholder="Buscar" maxlength="50"
+                           autocomplete="off" form="sin-formulario"
+                           value="@_busquedaPaciente" @oninput="BuscarPaciente" />
+                    <label for="buscar-paciente">Buscar paciente por nombre o CI</label>
+                </div>
+                <div class="form-floating">
+                    <InputSelect id="paciente" class="form-select" @bind-Value="_tratamiento.IdPaciente" @bind-Value:after="CargarCitasDelPaciente">
+                        <option value="">Selecciona…</option>
+                        @foreach (var p in pacientesVisibles)
+                        {
+                            <option value="@p.Id">@p.Apellidos, @p.Nombres · CI @p.CI</option>
+                        }
+                    </InputSelect>
+                    <label for="paciente">Paciente *</label>
+                </div>
                 <ValidationMessage For="() => _tratamiento.IdPaciente" />
+                @if (!string.IsNullOrWhiteSpace(_busquedaPaciente))
+                {
+                    @if (PacientesCoincidentes().Count == 0)
+                    {
+                        <div class="ayuda">Sin resultados. Prueba con otro nombre o CI.</div>
+                    }
+                    else
+                    {
+                        <div class="ayuda">@PacientesCoincidentes().Count paciente(s) encontrados.</div>
+                    }
+                }
             </div>
             <div class="col-md-6 form-floating">
-                <InputSelect id="odontologo" class="form-select" @bind-Value="_tratamiento.IdOdontologo">
+                @{
+                    var visibles = OdontologosVisibles();
+                    var especialidades = EspecialidadesDe(_tratamiento.Tipo);
+                }
+                <InputSelect id="odontologo" class="form-select" @bind-Value="_tratamiento.IdOdontologo" disabled="@(visibles.Count == 0)">
                     <option value="">Selecciona…</option>
-                    @foreach (var o in _odontologos)
+                    @foreach (var o in visibles)
                     {
                         <option value="@o.Id">@o.NombreCompleto · @o.Especialidad?.Nombre</option>
                     }
                 </InputSelect>
                 <label for="odontologo">Odontólogo *</label>
                 <ValidationMessage For="() => _tratamiento.IdOdontologo" />
+                @if (visibles.Count == 0)
+                {
+                    <div class="ayuda">No hay odontólogos activos con especialidad en @Formato.Texto(_tratamiento.Tipo).</div>
+                }
+                else if (especialidades.Length > 0)
+                {
+                    <div class="ayuda">Mostrando odontólogos de: @string.Join(", ", especialidades)</div>
+                }
             </div>
             <div class="col-12 form-floating">
                 <InputSelect id="cita" class="form-select" @bind-Value="_tratamiento.IdCita" disabled="@(_tratamiento.IdPaciente is null)">
@@ -105,6 +140,7 @@ else
     private List<OdontologoRespuesta> _odontologos = new();
     private List<CitaRespuesta> _todasCitas = new();
     private List<CitaRespuesta> _citasPaciente = new();
+    private string _busquedaPaciente = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,6 +174,96 @@ else
             .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Hora)
             .ToList();
         if (_tratamiento.IdCita is Guid id && _citasPaciente.All(c => c.Id != id)) _tratamiento.IdCita = null;
+    }
+
+    private void BuscarPaciente(ChangeEventArgs e)
+    {
+        _busquedaPaciente = e.Value?.ToString() ?? string.Empty;
+    }
+
+    // Pacientes que coinciden con lo escrito (nombre, apellido o CI). Cada palabra debe aparecer.
+    private List<PacienteRespuesta> PacientesCoincidentes()
+    {
+        var terminos = Normalizar(_busquedaPaciente).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (terminos.Length == 0) return _pacientes.ToList();
+
+        return _pacientes.Where(p =>
+        {
+            var texto = Normalizar($"{p.Apellidos} {p.Nombres} {p.CI}");
+            return terminos.All(t => texto.Contains(t));
+        }).ToList();
+    }
+
+    // Igual que la anterior, pero conserva al paciente ya elegido aunque no coincida con la búsqueda.
+    private List<PacienteRespuesta> PacientesVisibles()
+    {
+        var lista = PacientesCoincidentes();
+        if (_tratamiento.IdPaciente is Guid id
+            && lista.All(p => p.Id != id)
+            && _pacientes.FirstOrDefault(p => p.Id == id) is { } actual)
+        {
+            lista.Insert(0, actual);
+        }
+        return lista;
+    }
+
+    private void SeleccionarTipo(TipoTratamiento tipo)
+    {
+        _tratamiento.Tipo = tipo;
+        if (_tratamiento.IdOdontologo is Guid id && OdontologosPorTipo().All(o => o.Id != id))
+        {
+            _tratamiento.IdOdontologo = null;
+        }
+    }
+
+    // Especialidades que atienden cada tratamiento. Si un tipo no está aquí, se muestran todos los activos.
+    private static string[] EspecialidadesDe(TipoTratamiento? tipo) => tipo?.ToString() switch
+    {
+        "LimpiezaDental" => new[] { "Odontología General", "Periodoncia" },
+        "Ortodoncia" => new[] { "Ortodoncia", "Ortopedia Maxilar" },
+        "Endodoncia" => new[] { "Endodoncia" },
+        "Extraccion" => new[] { "Cirugía Oral", "Odontología General" },
+        _ => Array.Empty<string>()
+    };
+
+    // Odontólogos activos cuya especialidad atiende el tratamiento elegido.
+    private List<OdontologoRespuesta> OdontologosPorTipo()
+    {
+        var activos = _odontologos.Where(o => o.Activo);
+        var nombres = EspecialidadesDe(_tratamiento.Tipo);
+        if (nombres.Length == 0) return activos.ToList();
+
+        var validos = nombres.Select(Normalizar).ToHashSet();
+        return activos.Where(o => validos.Contains(Normalizar(o.Especialidad?.Nombre))).ToList();
+    }
+
+    // Igual que la anterior, pero conserva al odontólogo que ya venía elegido desde una cita.
+    private List<OdontologoRespuesta> OdontologosVisibles()
+    {
+        var lista = OdontologosPorTipo();
+        if (_tratamiento.IdOdontologo is Guid id
+            && lista.All(o => o.Id != id)
+            && _odontologos.FirstOrDefault(o => o.Id == id) is { } actual)
+        {
+            lista.Add(actual);
+        }
+        return lista;
+    }
+
+    // Compara sin distinguir mayúsculas ni tildes.
+    private static string Normalizar(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+        var descompuesto = texto.Trim().Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in descompuesto)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString().ToLowerInvariant();
     }
 
     private async Task Guardar()

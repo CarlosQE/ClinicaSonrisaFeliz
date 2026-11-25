@@ -86,6 +86,13 @@ public static class PacienteFactories
             }
         });
 
+        // Nombres completos ya usados: los extras nunca repiten uno de estos ni entre sí.
+        var usados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in lote)
+        {
+            usados.Add($"{p.Nombres} {p.Apellidos}");
+        }
+
         context.pacientes.AddRange(lote);
         context.SaveChanges();
         context.ChangeTracker.Clear();
@@ -94,23 +101,51 @@ public static class PacienteFactories
         var nombres = new[]
         {
             "Ana", "Carlos", "Diego", "Elena", "Fernando", "Gabriela", "Isabel",
-            "Javier", "Lucía", "María", "Nicolás", "Patricia", "Ricardo", "Sofía", "Tamara"
+            "Javier", "Lucía", "María", "Nicolás", "Patricia", "Ricardo", "Sofía", "Tamara",
+            "Alejandro", "Andrea", "Bruno", "Camila", "Daniela", "Eduardo", "Fabiola",
+            "Gonzalo", "Héctor", "Ingrid", "Jorge", "Karen", "Luis", "Marcelo", "Natalia",
+            "Óscar", "Paola", "Rodrigo", "Silvia", "Tomás", "Valeria", "Wilson", "Ximena",
+            "Yolanda"
         };
         var apellidos = new[]
         {
             "Apaza", "Cáceres", "Choque", "Condori", "Espinoza", "Flores", "García",
-            "Huanca", "Jiménez", "Mamani", "Mendoza", "Pérez", "Quispe", "Rojas", "Vargas"
+            "Huanca", "Jiménez", "Mamani", "Mendoza", "Pérez", "Quispe", "Rojas", "Vargas",
+            "Aguilar", "Álvarez", "Arce", "Balderrama", "Benítez", "Calizaya", "Castro",
+            "Cruz", "Fernández", "Gutiérrez", "Herrera", "Lima", "López", "Medina",
+            "Montaño", "Navarro", "Ortiz", "Paz", "Ramos", "Salazar", "Soria", "Torrez",
+            "Velasco", "Zapata", "Rivero"
         };
         var limiteNacimiento = DateTime.Today.AddYears(-18);
 
         for (var i = 1; i <= extras; i++)
         {
             var numero = i + CantidadBase;
+
+            string nombre;
+            string apellido;
+            while (true)
+            {
+                nombre = faker.PickRandom(nombres);
+                var segundo = faker.PickRandom(nombres);
+                if (faker.Random.Bool() && segundo != nombre)
+                {
+                    nombre = $"{nombre} {segundo}";
+                }
+
+                var paterno = faker.PickRandom(apellidos);
+                var materno = faker.PickRandom(apellidos);
+                if (paterno == materno) continue;
+
+                apellido = $"{paterno} {materno}";
+                if (usados.Add($"{nombre} {apellido}")) break;
+            }
+
             lote.Add(new Paciente
             {
                 Id = Guid.NewGuid(),
-                Nombres = faker.PickRandom(nombres),
-                Apellidos = faker.PickRandom(apellidos),
+                Nombres = nombre,
+                Apellidos = apellido,
                 CI = $"{70000000 + i:D8}",
                 Direccion = Recortar(faker.Address.FullAddress(), 150),
                 Email = $"paciente{numero:D6}@ejemplo.bo",
